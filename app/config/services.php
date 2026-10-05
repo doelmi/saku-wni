@@ -4,7 +4,7 @@
  * Services + Dice DI wiring.
  *
  * Bootstrap (web) provides:
- *   @var \flight\Engine<object> $app
+ *   @var \flight\Engine $app
  *   @var \App\Utils\Config      $config
  *   @var string                 $projectRoot
  *   @var string                 $ds
@@ -16,6 +16,10 @@
 
 use App\Utils\Config;
 use App\Utils\DatabaseFactory;
+use App\Service\Authenticator;
+use App\Service\AuthService;
+use App\Service\EmailSender;
+use App\Service\SmtpMailSender;
 use Dice\Dice;
 use flight\database\SimplePdo;
 use flight\debug\tracy\TracyExtensionLoader;
@@ -115,15 +119,22 @@ $session = new Session($sessionOptions);
 $container = new Dice();
 
 // Critical: reuse the same Engine instance; do not construct a new one
+$emailSender = new SmtpMailSender($config);
 $substitutions = [
     Engine::class => $app,
     Config::class => $config,
     Environment::class => $twig,
     Session::class => $session,
+    EmailSender::class => $emailSender,
 ];
 
 if ($db instanceof SimplePdo) {
     $substitutions[SimplePdo::class] = $db;
+    $substitutions[Authenticator::class] = new AuthService(
+        $db,
+        $config,
+        $emailSender
+    );
 }
 
 $container = $container->addRule('*', [
@@ -134,8 +145,10 @@ $container = $container->addRule('*', [
 $container = $container->addRule(Config::class, ['shared' => true]);
 $container = $container->addRule(Environment::class, ['shared' => true]);
 $container = $container->addRule(Session::class, ['shared' => true]);
+$container = $container->addRule(EmailSender::class, ['shared' => true]);
 if ($db instanceof SimplePdo) {
     $container = $container->addRule(SimplePdo::class, ['shared' => true]);
+    $container = $container->addRule(Authenticator::class, ['shared' => true]);
 }
 
 $app->registerContainerHandler(function ($class, $params) use ($container) {

@@ -93,4 +93,14 @@ class ConfigTest extends TestCase
         $this->assertSame('/myapp/', (new Config(['app' => ['base_url' => '/myapp/']]))->baseUrl());
         $this->assertSame('/', (new Config([]))->baseUrl());
     }
+
+    public function testTimezoneCanBeOverriddenFromEnvironment(): void
+    {
+        $merged = Config::mergeEnv(
+            ['app' => ['timezone' => 'UTC']],
+            ['APP_TIMEZONE' => 'Asia/Jakarta']
+        );
+
+        $this->assertSame('Asia/Jakarta', (new Config($merged))->get('app.timezone'));
+    }
 }

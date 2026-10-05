@@ -1,0 +1,24 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Service;
+
+use RuntimeException;
+
+final class AuthRateLimitException extends RuntimeException
+{
+    /** @var int */
+    private $retryAfter;
+
+    public function __construct(int $retryAfter)
+    {
+        parent::__construct('Please wait before requesting another OTP.');
+        $this->retryAfter = $retryAfter;
+    }
+
+    public function retryAfter(): int
+    {
+        return $this->retryAfter;
+    }
+}

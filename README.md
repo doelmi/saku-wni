@@ -56,6 +56,59 @@ php runway migrate
 # → http://localhost:8000/api/posts
 ```
 
+### Passwordless email login
+
+Apply migrations and configure the SMTP variables in `.env`, then use these
+JSON endpoints:
+
+```http
+POST /api/auth/request-otp
+Content-Type: application/json
+
+{"email":"user@example.com"}
+```
+
+The response contains a `challenge_id`. Submit that identifier and the
+six-digit code received by email:
+
+```http
+POST /api/auth/verify-otp
+Content-Type: application/json
+
+{"challenge_id":123,"otp":"123456"}
+```
+
+On success the API returns an opaque bearer token:
+
+```json
+{
+  "access_token": "atk_...",
+  "token_type": "Bearer",
+  "expires_in": 2592000
+}
+```
+
+OTP codes expire after 10 minutes, allow five attempts, and can be requested
+again after 60 seconds by default. These values are configurable in
+`app/config/config.php` or `.env`.
+
+SMTP configuration example:
+
+```env
+MAIL_HOST=smtp.example.com
+MAIL_PORT=587
+MAIL_USERNAME=your-account@example.com
+MAIL_PASSWORD=your-smtp-password
+MAIL_ENCRYPTION=tls
+MAIL_TIMEOUT=15
+MAIL_FROM=no-reply@example.com
+MAIL_FROM_NAME=Saku WNI
+```
+
+Use `tls` for STARTTLS on port `587`, `ssl` for implicit TLS on port `465`,
+or `none` only when the SMTP server explicitly supports an unencrypted
+connection.
+
 ### Docker
 
 ```bash

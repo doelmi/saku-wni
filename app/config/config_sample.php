@@ -37,6 +37,24 @@ return [
         // null = system temp /flight_sessions (see flightphp/session docs)
         'save_path' => null,
     ],
+    'mail' => [
+        'host' => '',
+        'port' => 587,
+        'username' => '',
+        'password' => '',
+        // tls, ssl, or none
+        'encryption' => 'tls',
+        'timeout' => 15,
+        'from' => 'no-reply@example.com',
+        'from_name' => 'Saku WNI',
+        'otp_subject' => 'Your login verification code',
+    ],
+    'auth' => [
+        'otp_ttl' => 600,
+        'otp_resend_cooldown' => 60,
+        'otp_max_attempts' => 5,
+        'access_token_ttl' => 2592000,
+    ],
     'runway' => [
         'index_root' => 'public/index.php',
         'app_root' => 'app/',

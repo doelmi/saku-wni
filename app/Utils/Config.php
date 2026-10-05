@@ -33,6 +33,15 @@ final class Config
         'DB_USERNAME' => 'database.user',
         'DB_PASSWORD' => 'database.password',
         'DB_SQLITE_PATH' => 'database.file_path',
+        'MAIL_HOST' => 'mail.host',
+        'MAIL_PORT' => 'mail.port',
+        'MAIL_USERNAME' => 'mail.username',
+        'MAIL_PASSWORD' => 'mail.password',
+        'MAIL_ENCRYPTION' => 'mail.encryption',
+        'MAIL_TIMEOUT' => 'mail.timeout',
+        'MAIL_FROM' => 'mail.from',
+        'MAIL_FROM_NAME' => 'mail.from_name',
+        'MAIL_OTP_SUBJECT' => 'mail.otp_subject',
     ];
 
     /**
@@ -143,6 +152,10 @@ final class Config
      */
     private static function castEnvValue(string $path, string $raw)
     {
+        if ($path === 'mail.port' || $path === 'mail.timeout') {
+            return (int) $raw;
+        }
+
         if ($path === 'app.debug') {
             return in_array(strtolower($raw), ['1', 'true', 'yes', 'on'], true);
         }

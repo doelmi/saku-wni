@@ -25,11 +25,12 @@
         "php": "^7.4 || ^8.0",
         "ext-json": "*",
         "ext-pdo": "*",
+        "flightphp/active-record": "^0.7",
         "flightphp/core": "^3.18",
         "flightphp/runway": "^1.2",
-        "flightphp/active-record": "^0.7",
         "flightphp/session": "^0.3",
         "level-2/dice": "^4.0",
+        "phpmailer/phpmailer": "^6.9",
         "tracy/tracy": "^2.9",
         "twig/twig": "^2.15 || ^3.0"
     },

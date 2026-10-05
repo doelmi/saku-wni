@@ -8,6 +8,7 @@ use App\Command\MigrateCommand;
 use App\Utils\Config;
 use App\Utils\DatabaseFactory;
 use flight\database\SimplePdo;
+use PDO;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -78,6 +79,10 @@ class MigrateCommandTest extends TestCase
 
     public function testApplyMigrationsToSqlite(): void
     {
+        if (!in_array('sqlite', PDO::getAvailableDrivers(), true)) {
+            $this->markTestSkipped('pdo_sqlite is not installed.');
+        }
+
         $config = new Config([
             'database' => [
                 'driver' => 'sqlite',
