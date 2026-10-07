@@ -144,7 +144,8 @@ class GameControllerTest extends TestCase
     {
         $app = $this->getMockBuilder(Engine::class)
             ->disableOriginalConstructor()
-            ->onlyMethods(['json', 'get', 'request'])
+            ->addMethods(['json'])
+            ->onlyMethods(['get', 'request'])
             ->getMock();
 
         $app->method('json')->willReturnCallback(
