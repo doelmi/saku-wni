@@ -1,7 +1,5 @@
 <img src="https://s6.imgcdn.dev/hYHaF8.webp" width="100" height="100">
 
-<br>
-
 # Saku WNI untuk WNI Simulator
 
 ### 📱 Saku WNI: Asisten Finansial Warga di Tengah Badai Takdir
@@ -14,6 +12,8 @@ Saku WNI adalah aplikasi dompet digital dan kalkulator skor pintar yang dirancan
 
 Mulai dari menghitung bonus gajian, membayar denda tilang mendadak, hingga kalkulasi otomatis Pajak Luar Biasa yang rumit, semua bisa diselesaikan secara SATSET tanpa perlu kertas coret-coretan. Cukup fokus pada strategi bertahan hidup dan biarkan Saku WNI yang mengurus birokrasi keuangan Anda!
 
+> [!IMPORTANT]
+> Repository ini merupakan Backend API, untuk Frontend bisa cek pada repository berikut: https://github.com/doelmi/saku-wni-fe
 
 ## Dokumentasi API
 
