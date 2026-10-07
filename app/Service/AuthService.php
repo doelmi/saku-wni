@@ -172,6 +172,23 @@ final class AuthService implements Authenticator
         ];
     }
 
+    public function logout(string $accessToken): void
+    {
+        $accessToken = trim($accessToken);
+        if ($accessToken === '') {
+            throw new InvalidArgumentException('A bearer token is required.');
+        }
+
+        $this->db->prepare(
+            'UPDATE access_tokens
+             SET revoked_at = ?
+             WHERE token_hash = ? AND revoked_at IS NULL'
+        )->execute([
+            $this->now(),
+            hash('sha256', $accessToken),
+        ]);
+    }
+
     private function normalizeEmail(string $email): string
     {
         $email = strtolower(trim($email));

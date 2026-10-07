@@ -37,8 +37,8 @@ class SecurityHeadersMiddleware
         }
 
         $csp = "default-src 'self'; "
-            . "script-src 'self' 'nonce-{$nonce}' 'strict-dynamic'; "
-            . "style-src {$styleSrc}; "
+            . "script-src 'self' 'nonce-{$nonce}' 'strict-dynamic' https://unpkg.com; "
+            . "style-src {$styleSrc} https://unpkg.com; "
             . "img-src 'self' data:;";
 
         $response = $this->app->response();

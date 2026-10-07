@@ -9,6 +9,7 @@ use App\Service\EmailSender;
 use App\Utils\Config;
 use flight\database\SimplePdo;
 use PHPUnit\Framework\TestCase;
+use PDOStatement;
 use ReflectionMethod;
 
 class AuthServiceTest extends TestCase
@@ -42,6 +43,37 @@ class AuthServiceTest extends TestCase
         $this->assertInstanceOf(\DateTimeImmutable::class, $parsed);
         $this->assertGreaterThanOrEqual(time() + 599, $parsed->getTimestamp());
         $this->assertLessThanOrEqual(time() + 601, $parsed->getTimestamp());
+    }
+
+    public function testLogoutRevokesHashedToken(): void
+    {
+        $statement = $this->getMockBuilder(PDOStatement::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['execute'])
+            ->getMock();
+        $statement->expects($this->once())
+            ->method('execute')
+            ->with($this->callback(static function (array $params): bool {
+                return count($params) === 2
+                    && is_string($params[0])
+                    && hash_equals(hash('sha256', 'atk_test'), (string) $params[1]);
+            }))
+            ->willReturn(true);
+
+        $database = $this->getMockBuilder(SimplePdo::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['prepare'])
+            ->getMock();
+        $database->expects($this->once())
+            ->method('prepare')
+            ->with($this->stringContains('UPDATE access_tokens'))
+            ->willReturn($statement);
+
+        $service = new AuthService($database, new Config([
+            'app' => ['timezone' => 'Asia/Jakarta'],
+        ]), $this->createMock(EmailSender::class));
+
+        $service->logout('atk_test');
     }
 
     private function serviceWithTimezone(string $timezone): AuthService

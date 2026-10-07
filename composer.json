@@ -1,26 +1,23 @@
 {
-    "name": "flightphp/skeleton",
-    "description": "A Flight PHP framework skeleton app optimized for AI-assisted and human development",
+    "name": "doelmi/saku-wni",
+    "description": "Kalkulator Keuangan Pendamping Non-Resmi (Companion App) untuk Board Game WNI Simulator.",
     "keywords": [
-        "microframework",
-        "rest",
-        "restapi",
-        "simple",
-        "easy",
-        "lite",
-        "boilerplate",
-        "skeleton",
-        "flightphp"
+        "akuntansi",
+        "finansial",
+        "keuangan",
+        "board",
+        "game",
+        "board-game",
+        "saku-wni",
+        "wni-simulator"
     ],
-    "homepage": "https://docs.flightphp.com",
+    "homepage": "https://doelmi.github.io",
     "license": "MIT",
-    "authors": [
-        {
-            "name": "n0nag0n",
-            "email": "n0nag0n@sky-9.com",
-            "role": "lead"
-        }
-    ],
+    "authors": [{
+        "name": "doelmi",
+        "email": "abdullahfahmi1997@gmail.com",
+        "role": "developer"
+    }],
     "require": {
         "php": "^7.4 || ^8.0",
         "ext-json": "*",

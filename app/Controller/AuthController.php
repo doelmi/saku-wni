@@ -77,12 +77,38 @@ final class AuthController
         }
     }
 
+    public function logout(): void
+    {
+        $token = $this->bearerToken();
+        if ($token === null) {
+            $this->error('unauthorized', 'Authentication required.', 401);
+            return;
+        }
+
+        try {
+            $this->auth->logout($token);
+            $this->app->json(['message' => 'Logged out.'], 200);
+        } catch (InvalidArgumentException $e) {
+            $this->error('unauthorized', $e->getMessage(), 401);
+        }
+    }
+
     /**
      * @return mixed
      */
     private function input(string $key)
     {
         return $this->app->request()->data->{$key};
+    }
+
+    private function bearerToken(): ?string
+    {
+        $authorization = $this->app->request()->header('Authorization');
+        if (!preg_match('/^Bearer\s+(\S+)$/i', $authorization, $matches)) {
+            return null;
+        }
+
+        return $matches[1];
     }
 
     private function error(string $code, string $message, int $status): void

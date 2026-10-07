@@ -53,6 +53,44 @@ class AuthControllerTest extends TestCase
         $this->assertSame('atk_test', $json['payload']['access_token']);
     }
 
+    public function testLogoutRevokesBearerToken(): void
+    {
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer atk_test';
+
+        $auth = $this->createMock(Authenticator::class);
+        $auth->expects($this->once())
+            ->method('logout')
+            ->with('atk_test');
+
+        $request = $this->requestWithData([]);
+        $json = [];
+        $app = $this->mockApp($request, $json);
+
+        (new AuthController($app, $auth))->logout();
+
+        $this->assertSame(200, $json['status']);
+        $this->assertSame('Logged out.', $json['payload']['message']);
+
+        unset($_SERVER['HTTP_AUTHORIZATION']);
+    }
+
+    public function testLogoutWithoutBearerTokenReturnsUnauthorized(): void
+    {
+        unset($_SERVER['HTTP_AUTHORIZATION']);
+
+        $auth = $this->createMock(Authenticator::class);
+        $auth->expects($this->never())->method('logout');
+
+        $request = $this->requestWithData([]);
+        $json = [];
+        $app = $this->mockApp($request, $json);
+
+        (new AuthController($app, $auth))->logout();
+
+        $this->assertSame(401, $json['status']);
+        $this->assertSame('unauthorized', $json['payload']['error']['code']);
+    }
+
     public function testInvalidRequestReturnsValidationError(): void
     {
         $auth = $this->createMock(Authenticator::class);

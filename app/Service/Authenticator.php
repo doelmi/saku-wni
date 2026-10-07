@@ -15,4 +15,6 @@ interface Authenticator
      * @return array{access_token:string,token_type:string,expires_in:int}
      */
     public function verifyOtp(int $challengeId, string $otp): array;
+
+    public function logout(string $accessToken): void;
 }
