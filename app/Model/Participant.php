@@ -13,6 +13,8 @@ use flight\ActiveRecord;
  * @property int         $game_id
  * @property string      $name
  * @property int         $balance
+ * @property string      $status
+ * @property string|null $public_token
  * @property string      $created_at
  * @property string      $updated_at
  * @property string|null $deleted_at
@@ -20,6 +22,13 @@ use flight\ActiveRecord;
 class Participant extends ActiveRecord
 {
     public const DEFAULT_NAME = 'Negara';
+    public const STATUS_ACTIVE = 'active';
+    public const STATUS_BANKRUPT = 'bankrupt';
+
+    public static function generatePublicToken(): string
+    {
+        return rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
+    }
 
     /**
      * @param mixed $databaseConnection PDO / SimplePdo / mysqli connection

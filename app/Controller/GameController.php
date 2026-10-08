@@ -80,6 +80,8 @@ final class GameController
                     'game_id' => (int) $game->id,
                     'name' => Participant::DEFAULT_NAME,
                     'balance' => 1_000_000_000_000_000,
+                    'status' => Participant::STATUS_ACTIVE,
+                    'public_token' => Participant::generatePublicToken(),
                     'created_at' => $now,
                     'updated_at' => $now,
                     'deleted_at' => null,

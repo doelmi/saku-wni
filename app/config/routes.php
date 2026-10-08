@@ -13,6 +13,7 @@ use App\Controller\AuthController;
 use App\Controller\ApiDocsController;
 use App\Controller\GameController;
 use App\Controller\ParticipantController;
+use App\Controller\PublicParticipantController;
 use App\Controller\TransferController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\SecurityHeadersMiddleware;
@@ -27,6 +28,10 @@ $router->group('', function (Router $router) use ($config) {
     // Database-backed API routes require SimplePdo. Skip when DB is disabled.
     if (DatabaseFactory::isEnabled($config)) {
         $router->group('/api', function (Router $router) {
+            $router->group('/public/participants', function (Router $router) {
+                $router->get('/@token:[A-Za-z0-9_-]+', [PublicParticipantController::class, 'show']);
+                $router->get('/@token:[A-Za-z0-9_-]+/transfers', [PublicParticipantController::class, 'history']);
+            });
             $router->group('/auth', function (Router $router) {
                 $router->post('/request-otp', [AuthController::class, 'requestOtp']);
                 $router->post('/verify-otp', [AuthController::class, 'verifyOtp']);
@@ -46,6 +51,10 @@ $router->group('', function (Router $router) use ($config) {
                     $router->patch(
                         '/@participant_id:[0-9]+',
                         [ParticipantController::class, 'update']
+                    );
+                    $router->patch(
+                        '/@participant_id:[0-9]+/status',
+                        [ParticipantController::class, 'updateStatus']
                     );
                     $router->delete(
                         '/@participant_id:[0-9]+',

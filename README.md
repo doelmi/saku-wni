@@ -49,9 +49,31 @@ PATCH  /api/games/{game_id}/participants/{participant_id}
 DELETE /api/games/{game_id}/participants/{participant_id}
 ```
 
+Setiap peserta punya `public_token` unik untuk akses publik tanpa login.
+Token ini berbeda untuk tiap peserta di tiap game.
+
+```text
+GET /api/public/participants/{token}
+GET /api/public/participants/{token}/transfers
+```
+
+Endpoint publik hanya menampilkan informasi peserta pemilik token tersebut,
+termasuk `balance`, dan history transfer yang melibatkan peserta itu.
+
 Hapus peserta memakai soft delete. Data peserta punya field audit
 `created_at`, `updated_at`, dan `deleted_at` yang boleh `null`.
 Setiap peserta juga punya `balance` berupa angka integer, dengan nilai awal `0`.
+Peserta `Negara` adalah peserta sistem: tidak bisa dihapus, tidak bisa
+diganti namanya, dan nama peserta baru tidak boleh `Negara`.
+Status peserta bernilai `active` atau `bankrupt`.
+Untuk mengubah status peserta:
+
+```text
+PATCH /api/games/{game_id}/participants/{participant_id}/status
+```
+
+Jika status diubah menjadi `bankrupt`, seluruh saldo peserta otomatis
+ditransfer ke peserta `Negara`.
 Uang hanya bisa dipindahkan antar peserta lewat endpoint ini:
 
 ```text

@@ -97,6 +97,9 @@ class GameControllerTest extends TestCase
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 game_id INTEGER NOT NULL,
                 name TEXT NOT NULL,
+                balance INTEGER NOT NULL DEFAULT 0,
+                status TEXT NOT NULL,
+                public_token TEXT NULL,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
                 deleted_at TEXT NULL

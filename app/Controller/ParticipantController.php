@@ -77,17 +77,66 @@ final class ParticipantController
         }
 
         try {
+            $name = $this->validateUserParticipantName($name);
             $now = $this->now();
             $participant = new Participant($this->db);
             $participant->copyFrom([
                 'game_id' => (int) $gameId,
-                'name' => $this->validateName($name),
+                'name' => $name,
+                'status' => Participant::STATUS_ACTIVE,
+                'public_token' => Participant::generatePublicToken(),
                 'created_at' => $now,
                 'updated_at' => $now,
                 'deleted_at' => null,
             ])->insert();
 
             $this->app->json($this->serializeParticipant($participant), 201);
+        } catch (InvalidArgumentException $e) {
+            $this->error('validation_error', $e->getMessage(), 422);
+        }
+    }
+
+    /**
+     * @param string|int $gameId
+     * @param string|int $participantId
+     */
+    public function updateStatus($gameId, $participantId): void
+    {
+        if ($this->findOwnedGame($gameId) === null) {
+            $this->error('not_found', 'Game not found.', 404);
+            return;
+        }
+
+        $participant = $this->findActiveParticipant($gameId, $participantId);
+        if ($participant === null) {
+            $this->error('not_found', 'Participant not found.', 404);
+            return;
+        }
+
+        $status = $this->input('status');
+        if (!is_string($status)) {
+            $this->error('validation_error', 'Participant status is required.', 422);
+            return;
+        }
+
+        try {
+            $status = $this->validateStatus($status);
+            if ($status === Participant::STATUS_BANKRUPT) {
+                $this->bankruptParticipant($gameId, $participantId, $participant);
+            } else {
+                $participant->copyFrom([
+                    'status' => $status,
+                    'updated_at' => $this->now(),
+                ])->update();
+            }
+
+            $updatedParticipant = $this->findActiveParticipant($gameId, $participantId);
+            if ($updatedParticipant === null) {
+                $this->error('not_found', 'Participant not found.', 404);
+                return;
+            }
+
+            $this->app->json($this->serializeParticipant($updatedParticipant), 200);
         } catch (InvalidArgumentException $e) {
             $this->error('validation_error', $e->getMessage(), 422);
         }
@@ -109,6 +158,10 @@ final class ParticipantController
             $this->error('not_found', 'Participant not found.', 404);
             return;
         }
+        if ($this->isCountryParticipant($participant)) {
+            $this->error('validation_error', 'Negara participant cannot be renamed.', 422);
+            return;
+        }
 
         $name = $this->input('name');
         if (!is_string($name)) {
@@ -118,7 +171,7 @@ final class ParticipantController
 
         try {
             $participant->copyFrom([
-                'name' => $this->validateName($name),
+                'name' => $this->validateUserParticipantName($name),
                 'updated_at' => $this->now(),
             ])->update();
 
@@ -142,6 +195,10 @@ final class ParticipantController
         $participant = $this->findActiveParticipant($gameId, $participantId);
         if ($participant === null) {
             $this->error('not_found', 'Participant not found.', 404);
+            return;
+        }
+        if ($this->isCountryParticipant($participant)) {
+            $this->error('validation_error', 'Negara participant cannot be deleted.', 422);
             return;
         }
 
@@ -215,9 +272,116 @@ final class ParticipantController
         return $name;
     }
 
+    private function validateUserParticipantName(string $name): string
+    {
+        $name = $this->validateName($name);
+        if (strcasecmp($name, Participant::DEFAULT_NAME) === 0) {
+            throw new InvalidArgumentException('Participant name cannot be Negara.');
+        }
+
+        return $name;
+    }
+
+    private function validateStatus(string $status): string
+    {
+        $status = trim($status);
+        if (!in_array($status, [
+            Participant::STATUS_ACTIVE,
+            Participant::STATUS_BANKRUPT,
+        ], true)) {
+            throw new InvalidArgumentException('Participant status must be active or bankrupt.');
+        }
+
+        return $status;
+    }
+
+    /**
+     * @param string|int $gameId
+     * @param string|int $participantId
+     */
+    private function bankruptParticipant($gameId, $participantId, Participant $participant): void
+    {
+        if ($this->isCountryParticipant($participant)) {
+            throw new InvalidArgumentException('Negara cannot be declared bankrupt.');
+        }
+
+        $now = $this->now();
+        $this->db->transaction(function () use ($gameId, $participantId, $participant, $now): void {
+            if ((string) $participant->status === Participant::STATUS_BANKRUPT) {
+                $participant->copyFrom([
+                    'status' => Participant::STATUS_BANKRUPT,
+                    'updated_at' => $now,
+                ])->update();
+                return;
+            }
+
+            $country = (new Participant($this->db))
+                ->eq('game_id', (int) $gameId)
+                ->eq('name', Participant::DEFAULT_NAME)
+                ->isNull('deleted_at')
+                ->orderByColumn('id', 'ASC')
+                ->find();
+
+            if (!$country instanceof Participant || !$country->isHydrated()) {
+                throw new InvalidArgumentException('Negara participant not found.');
+            }
+
+            $balance = (int) $participant->balance;
+            $updated = $this->db->runQuery(
+                'UPDATE participants
+                 SET status = ?, balance = 0, updated_at = ?
+                 WHERE id = ? AND game_id = ? AND deleted_at IS NULL',
+                [
+                    Participant::STATUS_BANKRUPT,
+                    $now,
+                    (int) $participantId,
+                    (int) $gameId,
+                ]
+            );
+
+            if ($updated->rowCount() !== 1) {
+                throw new InvalidArgumentException('Participant status could not be updated.');
+            }
+
+            if ($balance < 1) {
+                return;
+            }
+
+            $this->db->runQuery(
+                'UPDATE participants
+                 SET balance = balance + ?, updated_at = ?
+                 WHERE id = ? AND game_id = ? AND deleted_at IS NULL',
+                [
+                    $balance,
+                    $now,
+                    (int) $country->id,
+                    (int) $gameId,
+                ]
+            );
+
+            $this->db->runQuery(
+                'INSERT INTO participant_transfers
+                    (game_id, from_participant_id, to_participant_id, amount, created_at)
+                 VALUES (?, ?, ?, ?, ?)',
+                [
+                    (int) $gameId,
+                    (int) $participantId,
+                    (int) $country->id,
+                    $balance,
+                    $now,
+                ]
+            );
+        });
+    }
+
     private function currentUserId(): int
     {
         return (int) $this->app->get('auth.user_id');
+    }
+
+    private function isCountryParticipant(Participant $participant): bool
+    {
+        return strcasecmp((string) $participant->name, Participant::DEFAULT_NAME) === 0;
     }
 
     /**
@@ -238,6 +402,8 @@ final class ParticipantController
             'game_id' => (int) $participant->game_id,
             'name' => (string) $participant->name,
             'balance' => (int) $participant->balance,
+            'status' => (string) $participant->status,
+            'public_token' => $participant->public_token,
             'created_at' => $participant->created_at,
             'updated_at' => $participant->updated_at,
             'deleted_at' => $participant->deleted_at,

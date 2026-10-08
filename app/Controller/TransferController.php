@@ -127,8 +127,8 @@ final class TransferController
             return;
         }
 
-        $fromParticipant = $this->findActiveParticipant($gameId, $fromParticipantId);
-        $toParticipant = $this->findActiveParticipant($gameId, $toParticipantId);
+        $fromParticipant = $this->findTransferableParticipant($gameId, $fromParticipantId);
+        $toParticipant = $this->findTransferableParticipant($gameId, $toParticipantId);
         if ($fromParticipant === null || $toParticipant === null) {
             $this->error('not_found', 'Participant not found.', 404);
             return;
@@ -146,12 +146,14 @@ final class TransferController
                 $debit = $this->db->runQuery(
                     'UPDATE participants
                      SET balance = balance - ?, updated_at = ?
-                     WHERE id = ? AND game_id = ? AND deleted_at IS NULL AND balance >= ?',
+                     WHERE id = ? AND game_id = ? AND status = ?
+                       AND deleted_at IS NULL AND balance >= ?',
                     [
                         $amount,
                         $now,
                         (int) $fromParticipantId,
                         (int) $gameId,
+                        Participant::STATUS_ACTIVE,
                         $amount,
                     ]
                 );
@@ -163,12 +165,14 @@ final class TransferController
                 $credit = $this->db->runQuery(
                     'UPDATE participants
                      SET balance = balance + ?, updated_at = ?
-                     WHERE id = ? AND game_id = ? AND deleted_at IS NULL',
+                     WHERE id = ? AND game_id = ? AND status = ?
+                       AND deleted_at IS NULL',
                     [
                         $amount,
                         $now,
                         (int) $toParticipantId,
                         (int) $gameId,
+                        Participant::STATUS_ACTIVE,
                     ]
                 );
 
@@ -269,7 +273,7 @@ final class TransferController
      * @param string|int $gameId
      * @param string|int $participantId
      */
-    private function findActiveParticipant($gameId, $participantId): ?Participant
+    private function findTransferableParticipant($gameId, $participantId): ?Participant
     {
         if (!$this->validId($gameId) || !$this->validId($participantId)) {
             return null;
@@ -278,6 +282,7 @@ final class TransferController
         $participant = (new Participant($this->db))
             ->eq('id', (int) $participantId)
             ->eq('game_id', (int) $gameId)
+            ->eq('status', Participant::STATUS_ACTIVE)
             ->isNull('deleted_at')
             ->find();
 

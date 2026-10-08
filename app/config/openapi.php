@@ -12,8 +12,56 @@ return [
     'tags' => [
         ['name' => 'Authentication', 'description' => 'Passwordless login dengan OTP email.'],
         ['name' => 'Games', 'description' => 'Manajemen permainan board game.'],
+        ['name' => 'Public', 'description' => 'Endpoint publik berbasis token peserta.'],
     ],
     'paths' => [
+        '/api/public/participants/{token}' => [
+            'parameters' => [['$ref' => '#/components/parameters/PublicParticipantToken']],
+            'get' => [
+                'tags' => ['Public'],
+                'summary' => 'Mendapatkan informasi peserta dari token publik',
+                'operationId' => 'showPublicParticipant',
+                'responses' => [
+                    '200' => [
+                        'description' => 'Informasi peserta.',
+                        'content' => [
+                            'application/json' => [
+                                'schema' => ['$ref' => '#/components/schemas/PublicParticipant'],
+                            ],
+                        ],
+                    ],
+                    '404' => ['$ref' => '#/components/responses/NotFound'],
+                ],
+            ],
+        ],
+        '/api/public/participants/{token}/transfers' => [
+            'parameters' => [['$ref' => '#/components/parameters/PublicParticipantToken']],
+            'get' => [
+                'tags' => ['Public'],
+                'summary' => 'Mendapatkan history keuangan peserta dari token publik',
+                'operationId' => 'listPublicParticipantTransfers',
+                'responses' => [
+                    '200' => [
+                        'description' => 'History transfer peserta.',
+                        'content' => [
+                            'application/json' => [
+                                'schema' => [
+                                    'type' => 'object',
+                                    'required' => ['data'],
+                                    'properties' => [
+                                        'data' => [
+                                            'type' => 'array',
+                                            'items' => ['$ref' => '#/components/schemas/TransferHistory'],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                    '404' => ['$ref' => '#/components/responses/NotFound'],
+                ],
+            ],
+        ],
         '/api/auth/request-otp' => [
             'post' => [
                 'tags' => ['Authentication'],
@@ -330,6 +378,45 @@ return [
                 ],
             ],
         ],
+        '/api/games/{game_id}/participants/{participant_id}/status' => [
+            'parameters' => [
+                ['$ref' => '#/components/parameters/ParticipantGameId'],
+                [
+                    'name' => 'participant_id',
+                    'in' => 'path',
+                    'required' => true,
+                    'schema' => ['type' => 'integer', 'minimum' => 1],
+                ],
+            ],
+            'patch' => [
+                'tags' => ['Games'],
+                'summary' => 'Mengubah status peserta',
+                'operationId' => 'updateParticipantStatus',
+                'security' => [['bearerAuth' => []]],
+                'requestBody' => [
+                    'required' => true,
+                    'content' => [
+                        'application/json' => [
+                            'schema' => ['$ref' => '#/components/schemas/ParticipantStatusRequest'],
+                            'example' => ['status' => 'bankrupt'],
+                        ],
+                    ],
+                ],
+                'responses' => [
+                    '200' => [
+                        'description' => 'Status peserta berhasil diperbarui.',
+                        'content' => [
+                            'application/json' => [
+                                'schema' => ['$ref' => '#/components/schemas/Participant'],
+                            ],
+                        ],
+                    ],
+                    '401' => ['$ref' => '#/components/responses/Unauthorized'],
+                    '404' => ['$ref' => '#/components/responses/NotFound'],
+                    '422' => ['$ref' => '#/components/responses/ValidationError'],
+                ],
+            ],
+        ],
         '/api/games/{game_id}/transfers' => [
             'parameters' => [['$ref' => '#/components/parameters/ParticipantGameId']],
             'get' => [
@@ -424,6 +511,15 @@ return [
                 'required' => true,
                 'schema' => ['type' => 'integer', 'minimum' => 1],
             ],
+            'PublicParticipantToken' => [
+                'name' => 'token',
+                'in' => 'path',
+                'required' => true,
+                'schema' => [
+                    'type' => 'string',
+                    'pattern' => '^[A-Za-z0-9_-]{32,64}$',
+                ],
+            ],
         ],
         'schemas' => [
             'RequestOtpRequest' => [
@@ -494,6 +590,16 @@ return [
                     'amount' => ['type' => 'integer', 'minimum' => 1],
                 ],
             ],
+            'ParticipantStatusRequest' => [
+                'type' => 'object',
+                'required' => ['status'],
+                'properties' => [
+                    'status' => [
+                        'type' => 'string',
+                        'enum' => ['active', 'bankrupt'],
+                    ],
+                ],
+            ],
             'ParticipantTransfer' => [
                 'type' => 'object',
                 'required' => ['game_id', 'amount', 'data', 'transferred_at'],
@@ -553,6 +659,8 @@ return [
                     'game_id',
                     'name',
                     'balance',
+                    'status',
+                    'public_token',
                     'created_at',
                     'updated_at',
                     'deleted_at',
@@ -562,9 +670,34 @@ return [
                     'game_id' => ['type' => 'integer'],
                     'name' => ['type' => 'string'],
                     'balance' => ['type' => 'integer', 'minimum' => 0],
+                    'status' => ['type' => 'string', 'enum' => ['active', 'bankrupt']],
+                    'public_token' => ['type' => 'string', 'nullable' => true],
                     'created_at' => ['type' => 'string', 'format' => 'date-time'],
                     'updated_at' => ['type' => 'string', 'format' => 'date-time'],
                     'deleted_at' => ['type' => 'string', 'format' => 'date-time', 'nullable' => true],
+                ],
+            ],
+            'PublicParticipant' => [
+                'type' => 'object',
+                'required' => [
+                    'id',
+                    'game_id',
+                    'game_name',
+                    'name',
+                    'balance',
+                    'status',
+                    'created_at',
+                    'updated_at',
+                ],
+                'properties' => [
+                    'id' => ['type' => 'integer'],
+                    'game_id' => ['type' => 'integer'],
+                    'game_name' => ['type' => 'string'],
+                    'name' => ['type' => 'string'],
+                    'balance' => ['type' => 'integer', 'minimum' => 0],
+                    'status' => ['type' => 'string', 'enum' => ['active', 'bankrupt']],
+                    'created_at' => ['type' => 'string', 'format' => 'date-time'],
+                    'updated_at' => ['type' => 'string', 'format' => 'date-time'],
                 ],
             ],
             'Error' => [
