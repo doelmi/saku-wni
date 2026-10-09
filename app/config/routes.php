@@ -31,6 +31,20 @@ $router->group('', function (Router $router) use ($config) {
             $router->group('/public/participants', function (Router $router) {
                 $router->get('/@token:[A-Za-z0-9_-]+', [PublicParticipantController::class, 'show']);
                 $router->get('/@token:[A-Za-z0-9_-]+/transfers', [PublicParticipantController::class, 'history']);
+                $router->get(
+                    '/@token:[A-Za-z0-9_-]+/stream',
+                    [PublicParticipantController::class, 'stream']
+                )->streamWithHeaders([
+                    'Content-Type' => 'text/event-stream; charset=utf-8',
+                    'Cache-Control' => 'no-cache, no-transform',
+                    'X-Accel-Buffering' => 'no',
+                    'Access-Control-Allow-Origin' => '*',
+                    'X-Content-Type-Options' => 'nosniff',
+                    'X-Frame-Options' => 'SAMEORIGIN',
+                    'Referrer-Policy' => 'no-referrer',
+                    'Strict-Transport-Security' => 'max-age=31536000; includeSubDomains; preload',
+                    'Permissions-Policy' => 'geolocation=()',
+                ]);
             });
             $router->group('/auth', function (Router $router) {
                 $router->post('/request-otp', [AuthController::class, 'requestOtp']);

@@ -62,6 +62,29 @@ return [
                 ],
             ],
         ],
+        '/api/public/participants/{token}/stream' => [
+            'parameters' => [['$ref' => '#/components/parameters/PublicParticipantToken']],
+            'get' => [
+                'tags' => ['Public'],
+                'summary' => 'Mendengarkan perubahan informasi peserta melalui SSE',
+                'description' => 'Koneksi akan mengirim event participant.updated saat balance atau status berubah. '
+                    . 'Stream ditutup berkala agar browser melakukan reconnect otomatis.',
+                'operationId' => 'streamPublicParticipant',
+                'responses' => [
+                    '200' => [
+                        'description' => 'SSE stream informasi peserta.',
+                        'content' => [
+                            'text/event-stream' => [
+                                'schema' => [
+                                    'type' => 'string',
+                                    'description' => 'Event SSE dengan data JSON.',
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ],
         '/api/auth/request-otp' => [
             'post' => [
                 'tags' => ['Authentication'],

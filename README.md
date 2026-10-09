@@ -55,10 +55,32 @@ Token ini berbeda untuk tiap peserta di tiap game.
 ```text
 GET /api/public/participants/{token}
 GET /api/public/participants/{token}/transfers
+GET /api/public/participants/{token}/stream
 ```
 
 Endpoint publik hanya menampilkan informasi peserta pemilik token tersebut,
 termasuk `balance`, dan history transfer yang melibatkan peserta itu.
+Endpoint `stream` memakai Server-Sent Events (SSE), jadi frontend Nuxt/Vue
+bisa menerima perubahan balance tanpa reload:
+
+```js
+const source = new EventSource(
+  `${apiUrl}/api/public/participants/${publicToken}/stream`
+);
+
+source.addEventListener('participant.updated', (event) => {
+  const participant = JSON.parse(event.data);
+  // update state participant di halaman
+});
+
+source.addEventListener('error', () => {
+  // EventSource akan mencoba reconnect otomatis
+});
+```
+
+Stream mengirim data awal segera, lalu mengirim event lagi setiap balance atau
+status berubah. Koneksi ditutup berkala agar cocok dengan PHP-FPM/shared
+hosting dan akan disambung lagi otomatis oleh `EventSource`.
 
 Hapus peserta memakai soft delete. Data peserta punya field audit
 `created_at`, `updated_at`, dan `deleted_at` yang boleh `null`.

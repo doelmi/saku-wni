@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Utils\Config;
 use flight\database\SimplePdo;
 use flight\Engine;
 
@@ -15,13 +16,17 @@ final class PublicParticipantController
     /** @var SimplePdo */
     private $db;
 
+    /** @var Config */
+    private $config;
+
     /**
      * @param Engine $app
      */
-    public function __construct(Engine $app, SimplePdo $db)
+    public function __construct(Engine $app, SimplePdo $db, Config $config)
     {
         $this->app = $app;
         $this->db = $db;
+        $this->config = $config;
     }
 
     public function show(string $token): void
@@ -71,6 +76,60 @@ final class PublicParticipantController
         }
 
         $this->app->json(['data' => $data], 200);
+    }
+
+    /**
+     * Stream participant changes for EventSource clients.
+     *
+     * The stream intentionally has a finite lifetime. This works better with
+     * PHP-FPM and shared hosting, while EventSource reconnects automatically.
+     */
+    public function stream(string $token): void
+    {
+        $maxDuration = $this->configInteger('sse.max_duration', 55, 1, 300);
+        $pollInterval = $this->configInteger('sse.poll_interval', 2, 1, 30);
+        $retryAfter = $this->configInteger('sse.retry_after', 3000, 1000, 60000);
+        $startedAt = microtime(true);
+        $lastFingerprint = null;
+
+        $this->writeSse('retry', (string) $retryAfter);
+
+        while ((microtime(true) - $startedAt) < $maxDuration) {
+            if (connection_aborted() === 1) {
+                return;
+            }
+
+            $participant = $this->findParticipantByToken($token);
+            if ($participant === null) {
+                $this->writeSse('error', [
+                    'error' => [
+                        'code' => 'not_found',
+                        'message' => 'Participant not found.',
+                    ],
+                ]);
+                return;
+            }
+
+            $data = $this->serializeParticipant($participant);
+            $fingerprint = implode('|', [
+                (string) $data['id'],
+                (string) $data['name'],
+                (string) $data['balance'],
+                (string) $data['status'],
+                (string) $data['updated_at'],
+            ]);
+
+            if ($fingerprint !== $lastFingerprint) {
+                $this->writeSse('participant.updated', $data);
+                $lastFingerprint = $fingerprint;
+            } else {
+                // Keep proxies and browser connections alive without sending
+                // a second participant payload when nothing changed.
+                $this->writeSseComment('heartbeat');
+            }
+
+            sleep($pollInterval);
+        }
     }
 
     /**
@@ -152,5 +211,47 @@ final class PublicParticipantController
                 'message' => $message,
             ],
         ], $status);
+    }
+
+    /**
+     * @param mixed $data
+     */
+    private function writeSse(string $event, $data): void
+    {
+        $encoded = is_string($data)
+            ? $data
+            : json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        if ($encoded === false) {
+            $encoded = '{}';
+        }
+
+        echo 'event: ' . $event . "\n";
+        foreach (explode("\n", $encoded) as $line) {
+            echo 'data: ' . $line . "\n";
+        }
+        echo "\n";
+        $this->flushOutput();
+    }
+
+    private function writeSseComment(string $comment): void
+    {
+        echo ': ' . $comment . "\n\n";
+        $this->flushOutput();
+    }
+
+    private function flushOutput(): void
+    {
+        if (ob_get_level() > 0) {
+            ob_flush();
+        }
+        flush();
+    }
+
+    private function configInteger(string $key, int $default, int $minimum, int $maximum): int
+    {
+        $value = (int) $this->config->get($key, $default);
+
+        return max($minimum, min($value, $maximum));
     }
 }

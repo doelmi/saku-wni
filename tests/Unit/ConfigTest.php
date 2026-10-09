@@ -103,4 +103,22 @@ class ConfigTest extends TestCase
 
         $this->assertSame('Asia/Jakarta', (new Config($merged))->get('app.timezone'));
     }
+
+    public function testSseSettingsAreCastToIntegers(): void
+    {
+        $merged = Config::mergeEnv(
+            [],
+            [
+                'SSE_MAX_DURATION' => '45',
+                'SSE_POLL_INTERVAL' => '3',
+                'SSE_RETRY_AFTER' => '5000',
+            ]
+        );
+
+        $config = new Config($merged);
+
+        $this->assertSame(45, $config->get('sse.max_duration'));
+        $this->assertSame(3, $config->get('sse.poll_interval'));
+        $this->assertSame(5000, $config->get('sse.retry_after'));
+    }
 }

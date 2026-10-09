@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use App\Controller\PublicParticipantController;
+use App\Utils\Config;
 use flight\database\SimplePdo;
 use flight\Engine;
 use PHPUnit\Framework\TestCase;
@@ -21,7 +22,8 @@ class PublicParticipantControllerTest extends TestCase
 
         $controller = new PublicParticipantController(
             $this->getMockBuilder(Engine::class)->disableOriginalConstructor()->getMock(),
-            $db
+            $db,
+            new Config([])
         );
 
         $method = new ReflectionMethod(PublicParticipantController::class, 'findParticipantByToken');

@@ -42,6 +42,9 @@ final class Config
         'MAIL_FROM' => 'mail.from',
         'MAIL_FROM_NAME' => 'mail.from_name',
         'MAIL_OTP_SUBJECT' => 'mail.otp_subject',
+        'SSE_MAX_DURATION' => 'sse.max_duration',
+        'SSE_POLL_INTERVAL' => 'sse.poll_interval',
+        'SSE_RETRY_AFTER' => 'sse.retry_after',
     ];
 
     /**
@@ -152,7 +155,13 @@ final class Config
      */
     private static function castEnvValue(string $path, string $raw)
     {
-        if ($path === 'mail.port' || $path === 'mail.timeout') {
+        if (
+            $path === 'mail.port'
+            || $path === 'mail.timeout'
+            || $path === 'sse.max_duration'
+            || $path === 'sse.poll_interval'
+            || $path === 'sse.retry_after'
+        ) {
             return (int) $raw;
         }
 

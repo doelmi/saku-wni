@@ -55,6 +55,14 @@ return [
         'otp_max_attempts' => 5,
         'access_token_ttl' => 2592000,
     ],
+    'sse' => [
+        // Stream akan ditutup setelah durasi ini dan EventSource bisa reconnect.
+        'max_duration' => 55,
+        // Jeda polling saldo dalam detik.
+        'poll_interval' => 2,
+        // Nilai retry yang dikirim ke browser dalam milidetik.
+        'retry_after' => 3000,
+    ],
     'runway' => [
         'index_root' => 'public/index.php',
         'app_root' => 'app/',
