@@ -74,9 +74,6 @@ final class AuthService implements Authenticator
         $otp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         $expiresAt = $this->timeAfter($otpTtl);
         $codeHash = password_hash($otp, PASSWORD_DEFAULT);
-        if ($codeHash === false) {
-            throw new RuntimeException('Unable to create OTP.');
-        }
 
         $statement = $this->db->prepare(
             'INSERT INTO otp_challenges
@@ -86,20 +83,20 @@ final class AuthService implements Authenticator
         $statement->execute([$userId, $codeHash, $expiresAt, $now]);
         $challengeId = (int) $this->db->lastInsertId();
 
-        $subject = (string) $this->config->get('mail.otp_subject', 'Your login verification code');
+        $subject = (string) $this->config->get('mail.otp_subject', 'Kode verifikasi login kamu');
         try {
             $this->emailSender->send(
                 $email,
                 $subject,
-                "Your verification code is {$otp}.\n\n"
-                . "This code expires in " . (int) ceil($otpTtl / 60) . " minutes.\n"
-                . "If you did not request this code, you can ignore this email."
+                "Kode verifikasi kamu adalah {$otp}.\n\n"
+                . "Kode ini berlaku selama " . (int) ceil($otpTtl / 60) . " menit.\n"
+                . "Kalau kamu tidak merasa meminta kode ini, abaikan saja email ini."
             );
         } catch (\Throwable $e) {
             $this->db->prepare(
                 'UPDATE otp_challenges SET consumed_at = ? WHERE id = ?'
             )->execute([$this->now(), $challengeId]);
-            throw new RuntimeException('Unable to send OTP email.', 0, $e);
+            throw new RuntimeException('Email OTP gagal dikirim.', 0, $e);
         }
 
         return [
@@ -114,7 +111,7 @@ final class AuthService implements Authenticator
     public function verifyOtp(int $challengeId, string $otp): array
     {
         if ($challengeId < 1 || !preg_match('/^\d{6}$/', $otp)) {
-            throw new InvalidArgumentException('The challenge_id and otp are invalid.');
+            throw new InvalidArgumentException('challenge_id atau OTP belum valid.');
         }
 
         $maxAttempts = max(1, (int) $this->config->get('auth.otp_max_attempts', 5));
@@ -125,23 +122,23 @@ final class AuthService implements Authenticator
         );
 
         if ($challenge === null || count($challenge) === 0 || $challenge['consumed_at'] !== null) {
-            throw new InvalidArgumentException('The OTP is invalid or has expired.');
+            throw new InvalidArgumentException('OTP salah atau sudah kedaluwarsa.');
         }
 
         if (strtotime((string) $challenge['expires_at']) <= time()) {
-            throw new InvalidArgumentException('The OTP is invalid or has expired.');
+            throw new InvalidArgumentException('OTP salah atau sudah kedaluwarsa.');
         }
 
         $attempts = (int) $challenge['attempts'];
         if ($attempts >= $maxAttempts) {
-            throw new InvalidArgumentException('The OTP is invalid or has expired.');
+            throw new InvalidArgumentException('OTP salah atau sudah kedaluwarsa.');
         }
 
         if (!password_verify($otp, (string) $challenge['code_hash'])) {
             $this->db->prepare(
                 'UPDATE otp_challenges SET attempts = attempts + 1 WHERE id = ?'
             )->execute([$challengeId]);
-            throw new InvalidArgumentException('The OTP is invalid or has expired.');
+            throw new InvalidArgumentException('OTP salah atau sudah kedaluwarsa.');
         }
 
         $now = $this->now();
@@ -151,7 +148,7 @@ final class AuthService implements Authenticator
         );
         $updated->execute([$now, $challengeId]);
         if ($updated->rowCount() !== 1) {
-            throw new InvalidArgumentException('The OTP is invalid or has expired.');
+            throw new InvalidArgumentException('OTP salah atau sudah kedaluwarsa.');
         }
 
         $tokenTtl = max(300, (int) $this->config->get('auth.access_token_ttl', 2592000));
@@ -176,7 +173,7 @@ final class AuthService implements Authenticator
     {
         $accessToken = trim($accessToken);
         if ($accessToken === '') {
-            throw new InvalidArgumentException('A bearer token is required.');
+            throw new InvalidArgumentException('Bearer token wajib dikirim.');
         }
 
         $this->db->prepare(
@@ -193,7 +190,7 @@ final class AuthService implements Authenticator
     {
         $email = strtolower(trim($email));
         if ($email === '' || strlen($email) > 254 || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
-            throw new InvalidArgumentException('A valid email address is required.');
+            throw new InvalidArgumentException('Email yang kamu masukkan belum valid.');
         }
 
         return $email;

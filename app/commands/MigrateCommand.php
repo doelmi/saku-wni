@@ -32,7 +32,7 @@ class MigrateCommand extends AbstractBaseCommand
      */
     public function __construct(array $config)
     {
-        parent::__construct('migrate', 'Apply pending SQL migrations from migrations/', $config);
+        parent::__construct('migrate', 'Jalankan migration SQL yang belum diterapkan dari migrations/', $config);
     }
 
     public function execute(): void
@@ -41,7 +41,7 @@ class MigrateCommand extends AbstractBaseCommand
         $io = $this->io();
         $projectRoot = getcwd();
         if ($projectRoot === false) {
-            $io->error('Unable to determine project root (getcwd failed).', true);
+            $io->error('Project root gagal dibaca (getcwd gagal).', true);
             return;
         }
 
@@ -55,7 +55,7 @@ class MigrateCommand extends AbstractBaseCommand
 
         $migrationsDir = $projectRoot . DIRECTORY_SEPARATOR . 'migrations';
         if (!is_dir($migrationsDir)) {
-            $io->error('migrations/ directory not found.', true);
+            $io->error('Folder migrations/ tidak ditemukan.', true);
             return;
         }
 
@@ -75,27 +75,27 @@ class MigrateCommand extends AbstractBaseCommand
             $pending++;
             $sql = file_get_contents($file);
             if ($sql === false || trim($sql) === '') {
-                $io->error("Skipping empty or unreadable migration: {$name}", true);
+                $io->error("Migration kosong atau tidak bisa dibaca, dilewati: {$name}", true);
                 continue;
             }
 
-            $io->info("Applying {$name}...", true);
+            $io->info("Menjalankan {$name}...", true);
 
             try {
                 $this->applyMigration($db, $name, $sql);
-                $io->ok("  applied {$name}", true);
+                $io->ok("  berhasil {$name}", true);
             } catch (PDOException $e) {
-                $io->error("  failed {$name}: " . $e->getMessage(), true);
+                $io->error("  gagal {$name}: " . $e->getMessage(), true);
                 return;
             }
         }
 
         if ($pending === 0) {
-            $io->info('No pending migrations.', true);
+            $io->info('Tidak ada migration yang perlu dijalankan.', true);
             return;
         }
 
-        $io->ok("Done. Applied {$pending} migration(s).", true);
+        $io->ok("Beres. {$pending} migration berhasil dijalankan.", true);
     }
 
     /**
@@ -150,13 +150,13 @@ class MigrateCommand extends AbstractBaseCommand
 
         if (!is_file($configFile)) {
             throw new \RuntimeException(
-                'app/config/config.php not found. Copy config_sample.php first.'
+                'app/config/config.php tidak ditemukan. Salin config_sample.php dulu.'
             );
         }
 
         $fileConfig = require $configFile;
         if (!is_array($fileConfig)) {
-            throw new \RuntimeException('config.php must return an array.');
+            throw new \RuntimeException('config.php harus mengembalikan array.');
         }
 
         $merged = Config::mergeEnv($fileConfig, $_ENV);

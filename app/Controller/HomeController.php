@@ -32,7 +32,7 @@ class HomeController
     public function index(): void
     {
         $this->app->render('welcome', [
-            'message' => 'You are gonna do great things!',
+            'message' => 'Kamu bakal bikin hal keren di sini.',
             'env' => $this->config->env(),
             'debug' => $this->config->isDebug(),
         ]);

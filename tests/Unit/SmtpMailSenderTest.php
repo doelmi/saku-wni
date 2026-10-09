@@ -21,7 +21,7 @@ class SmtpMailSenderTest extends TestCase
         ]));
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('SMTP host and sender address are not configured.');
+        $this->expectExceptionMessage('Host SMTP dan alamat pengirim belum diatur.');
         $sender->send('user@example.com', 'Test', 'Body');
     }
 
@@ -36,7 +36,7 @@ class SmtpMailSenderTest extends TestCase
         ]));
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Unsupported SMTP encryption: invalid');
+        $this->expectExceptionMessage('Enkripsi SMTP belum didukung: invalid');
         $sender->send('user@example.com', 'Test', 'Body');
     }
 }

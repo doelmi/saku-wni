@@ -56,7 +56,7 @@ final class GameController
     {
         $name = $this->input('name');
         if (!is_string($name)) {
-            $this->error('validation_error', 'A game name is required.', 422);
+            $this->error('validation_error', 'Nama game wajib diisi.', 422);
             return;
         }
 
@@ -103,13 +103,13 @@ final class GameController
     {
         $game = $this->findActiveGame($id);
         if ($game === null) {
-            $this->error('not_found', 'Game not found.', 404);
+            $this->error('not_found', 'Game tidak ditemukan.', 404);
             return;
         }
 
         $name = $this->input('name');
         if (!is_string($name)) {
-            $this->error('validation_error', 'A game name is required.', 422);
+            $this->error('validation_error', 'Nama game wajib diisi.', 422);
             return;
         }
 
@@ -128,13 +128,13 @@ final class GameController
     {
         $game = $this->findActiveGame($id);
         if ($game === null) {
-            $this->error('not_found', 'Game not found.', 404);
+            $this->error('not_found', 'Game tidak ditemukan.', 404);
             return;
         }
 
         $game->updateAttribute('deleted_at', $this->now());
         $this->app->json([
-            'message' => 'Game deleted.',
+            'message' => 'Game berhasil dihapus.',
         ], 200);
     }
 
@@ -147,12 +147,12 @@ final class GameController
     {
         $game = $this->findActiveGame($id);
         if ($game === null) {
-            $this->error('not_found', 'Game not found.', 404);
+            $this->error('not_found', 'Game tidak ditemukan.', 404);
             return;
         }
 
         if ((string) $game->status === Game::STATUS_CLOSED) {
-            $this->error('game_already_closed', 'Game is already closed.', 409);
+            $this->error('game_already_closed', 'Game ini sudah ditutup.', 409);
             return;
         }
 
@@ -185,7 +185,7 @@ final class GameController
     {
         $name = trim($name);
         if ($name === '' || strlen($name) > 255) {
-            throw new InvalidArgumentException('Game name must be between 1 and 255 characters.');
+            throw new InvalidArgumentException('Nama game harus terdiri dari 1 sampai 255 karakter.');
         }
 
         return $name;

@@ -13,7 +13,7 @@ final class AuthRateLimitException extends RuntimeException
 
     public function __construct(int $retryAfter)
     {
-        parent::__construct('Please wait before requesting another OTP.');
+        parent::__construct('Tunggu sebentar sebelum minta OTP lagi, ya.');
         $this->retryAfter = $retryAfter;
     }
 

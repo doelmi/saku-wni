@@ -35,7 +35,7 @@ final class AuthMiddleware
     {
         $authorization = $this->app->request()->header('Authorization');
         if (!preg_match('/^Bearer\s+(\S+)$/i', $authorization, $matches)) {
-            $this->unauthorized('Authentication required.');
+            $this->unauthorized('Kamu harus login dulu.');
             return;
         }
 
@@ -48,7 +48,7 @@ final class AuthMiddleware
         );
 
         if ($token === null || count($token) === 0) {
-            $this->unauthorized('Invalid or expired access token.');
+            $this->unauthorized('Token akses tidak valid atau sudah kedaluwarsa.');
             return;
         }
 

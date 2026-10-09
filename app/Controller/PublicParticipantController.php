@@ -33,7 +33,7 @@ final class PublicParticipantController
     {
         $participant = $this->findParticipantByToken($token);
         if ($participant === null) {
-            $this->error('not_found', 'Participant not found.', 404);
+            $this->error('not_found', 'Peserta tidak ditemukan.', 404);
             return;
         }
 
@@ -44,7 +44,7 @@ final class PublicParticipantController
     {
         $participant = $this->findParticipantByToken($token);
         if ($participant === null) {
-            $this->error('not_found', 'Participant not found.', 404);
+            $this->error('not_found', 'Peserta tidak ditemukan.', 404);
             return;
         }
 
@@ -104,7 +104,7 @@ final class PublicParticipantController
                 $this->writeSse('error', [
                     'error' => [
                         'code' => 'not_found',
-                        'message' => 'Participant not found.',
+                        'message' => 'Peserta tidak ditemukan.',
                     ],
                 ]);
                 return;

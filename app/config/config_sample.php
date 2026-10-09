@@ -47,7 +47,7 @@ return [
         'timeout' => 15,
         'from' => 'no-reply@example.com',
         'from_name' => 'Saku WNI',
-        'otp_subject' => 'Your login verification code',
+        'otp_subject' => 'Kode verifikasi login kamu',
     ],
     'auth' => [
         'otp_ttl' => 600,

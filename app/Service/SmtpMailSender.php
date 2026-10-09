@@ -24,7 +24,7 @@ final class SmtpMailSender implements EmailSender
         $host = trim((string) $this->config->get('mail.host', ''));
         $from = trim((string) $this->config->get('mail.from', ''));
         if ($host === '' || $from === '') {
-            throw new RuntimeException('SMTP host and sender address are not configured.');
+            throw new RuntimeException('Host SMTP dan alamat pengirim belum diatur.');
         }
 
         $mailer = new PHPMailer(true);
@@ -44,7 +44,7 @@ final class SmtpMailSender implements EmailSender
             } elseif ($encryption === 'tls' || $encryption === 'starttls') {
                 $mailer->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             } elseif ($encryption !== '' && $encryption !== 'none') {
-                throw new RuntimeException('Unsupported SMTP encryption: ' . $encryption);
+                throw new RuntimeException('Enkripsi SMTP belum didukung: ' . $encryption);
             } else {
                 $mailer->SMTPAutoTLS = false;
             }
@@ -59,7 +59,7 @@ final class SmtpMailSender implements EmailSender
             $mailer->isHTML(false);
             $mailer->send();
         } catch (PHPMailerException $e) {
-            throw new RuntimeException('Unable to send email through SMTP.', 0, $e);
+            throw new RuntimeException('Email gagal dikirim lewat SMTP.', 0, $e);
         }
     }
 }

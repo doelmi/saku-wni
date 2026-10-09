@@ -10,15 +10,15 @@ return [
         'version' => '1.0.0',
     ],
     'tags' => [
-        ['name' => 'Authentication', 'description' => 'Passwordless login dengan OTP email.'],
-        ['name' => 'Games', 'description' => 'Manajemen permainan board game.'],
-        ['name' => 'Public', 'description' => 'Endpoint publik berbasis token peserta.'],
+        ['name' => 'Autentikasi', 'description' => 'Login tanpa password dengan OTP email.'],
+        ['name' => 'Permainan', 'description' => 'Manajemen permainan board game.'],
+        ['name' => 'Publik', 'description' => 'Endpoint publik berbasis token peserta.'],
     ],
     'paths' => [
         '/api/public/participants/{token}' => [
             'parameters' => [['$ref' => '#/components/parameters/PublicParticipantToken']],
             'get' => [
-                'tags' => ['Public'],
+                'tags' => ['Publik'],
                 'summary' => 'Mendapatkan informasi peserta dari token publik',
                 'operationId' => 'showPublicParticipant',
                 'responses' => [
@@ -37,12 +37,12 @@ return [
         '/api/public/participants/{token}/transfers' => [
             'parameters' => [['$ref' => '#/components/parameters/PublicParticipantToken']],
             'get' => [
-                'tags' => ['Public'],
-                'summary' => 'Mendapatkan history keuangan peserta dari token publik',
+                'tags' => ['Publik'],
+                'summary' => 'Mendapatkan riwayat keuangan peserta dari token publik',
                 'operationId' => 'listPublicParticipantTransfers',
                 'responses' => [
                     '200' => [
-                        'description' => 'History transfer peserta.',
+                        'description' => 'Riwayat transfer peserta.',
                         'content' => [
                             'application/json' => [
                                 'schema' => [
@@ -65,14 +65,14 @@ return [
         '/api/public/participants/{token}/stream' => [
             'parameters' => [['$ref' => '#/components/parameters/PublicParticipantToken']],
             'get' => [
-                'tags' => ['Public'],
+                'tags' => ['Publik'],
                 'summary' => 'Mendengarkan perubahan informasi peserta melalui SSE',
                 'description' => 'Koneksi akan mengirim event participant.updated saat balance atau status berubah. '
-                    . 'Stream ditutup berkala agar browser melakukan reconnect otomatis.',
+                    . 'Stream ditutup berkala agar browser bisa reconnect otomatis.',
                 'operationId' => 'streamPublicParticipant',
                 'responses' => [
                     '200' => [
-                        'description' => 'SSE stream informasi peserta.',
+                        'description' => 'Stream SSE informasi peserta.',
                         'content' => [
                             'text/event-stream' => [
                                 'schema' => [
@@ -87,7 +87,7 @@ return [
         ],
         '/api/auth/request-otp' => [
             'post' => [
-                'tags' => ['Authentication'],
+                'tags' => ['Autentikasi'],
                 'summary' => 'Meminta OTP login ke email',
                 'operationId' => 'requestOtp',
                 'requestBody' => [
@@ -116,7 +116,7 @@ return [
         ],
         '/api/auth/verify-otp' => [
             'post' => [
-                'tags' => ['Authentication'],
+                'tags' => ['Autentikasi'],
                 'summary' => 'Memverifikasi OTP dan mendapatkan access token',
                 'operationId' => 'verifyOtp',
                 'requestBody' => [
@@ -144,7 +144,7 @@ return [
         ],
         '/api/auth/logout' => [
             'post' => [
-                'tags' => ['Authentication'],
+                'tags' => ['Autentikasi'],
                 'summary' => 'Logout dan mencabut access token aktif',
                 'operationId' => 'logout',
                 'security' => [['bearerAuth' => []]],
@@ -163,7 +163,7 @@ return [
         ],
         '/api/games' => [
             'get' => [
-                'tags' => ['Games'],
+                'tags' => ['Permainan'],
                 'summary' => 'Mendapatkan daftar game yang belum dihapus',
                 'operationId' => 'listGames',
                 'security' => [['bearerAuth' => []]],
@@ -189,7 +189,7 @@ return [
                 ],
             ],
             'post' => [
-                'tags' => ['Games'],
+                'tags' => ['Permainan'],
                 'summary' => 'Membuat game baru',
                 'operationId' => 'createGame',
                 'security' => [['bearerAuth' => []]],
@@ -198,7 +198,7 @@ return [
                     'content' => [
                         'application/json' => [
                             'schema' => ['$ref' => '#/components/schemas/GameNameRequest'],
-                            'example' => ['name' => 'Friday Monopoly'],
+                            'example' => ['name' => 'Monopoli Jumat'],
                         ],
                     ],
                 ],
@@ -219,7 +219,7 @@ return [
         '/api/games/{id}' => [
             'parameters' => [['$ref' => '#/components/parameters/GameId']],
             'patch' => [
-                'tags' => ['Games'],
+                'tags' => ['Permainan'],
                 'summary' => 'Mengubah nama game',
                 'operationId' => 'updateGame',
                 'security' => [['bearerAuth' => []]],
@@ -228,7 +228,7 @@ return [
                     'content' => [
                         'application/json' => [
                             'schema' => ['$ref' => '#/components/schemas/GameNameRequest'],
-                            'example' => ['name' => 'Saturday Monopoly'],
+                            'example' => ['name' => 'Monopoli Sabtu'],
                         ],
                     ],
                 ],
@@ -247,8 +247,8 @@ return [
                 ],
             ],
             'delete' => [
-                'tags' => ['Games'],
-                'summary' => 'Soft delete game',
+                'tags' => ['Permainan'],
+                'summary' => 'Menghapus game secara soft delete',
                 'operationId' => 'deleteGame',
                 'security' => [['bearerAuth' => []]],
                 'responses' => [
@@ -268,7 +268,7 @@ return [
         '/api/games/{id}/close' => [
             'parameters' => [['$ref' => '#/components/parameters/GameId']],
             'patch' => [
-                'tags' => ['Games'],
+                'tags' => ['Permainan'],
                 'summary' => 'Menutup game dan mengisi ended_at',
                 'operationId' => 'closeGame',
                 'security' => [['bearerAuth' => []]],
@@ -290,7 +290,7 @@ return [
         '/api/games/{game_id}/participants' => [
             'parameters' => [['$ref' => '#/components/parameters/ParticipantGameId']],
             'get' => [
-                'tags' => ['Games'],
+                'tags' => ['Permainan'],
                 'summary' => 'Mendapatkan peserta dalam game',
                 'operationId' => 'listParticipants',
                 'security' => [['bearerAuth' => []]],
@@ -316,7 +316,7 @@ return [
                 ],
             ],
             'post' => [
-                'tags' => ['Games'],
+                'tags' => ['Permainan'],
                 'summary' => 'Menambahkan peserta ke game',
                 'operationId' => 'createParticipant',
                 'security' => [['bearerAuth' => []]],
@@ -355,7 +355,7 @@ return [
                 ],
             ],
             'patch' => [
-                'tags' => ['Games'],
+                'tags' => ['Permainan'],
                 'summary' => 'Mengubah nama peserta',
                 'operationId' => 'updateParticipant',
                 'security' => [['bearerAuth' => []]],
@@ -383,8 +383,8 @@ return [
                 ],
             ],
             'delete' => [
-                'tags' => ['Games'],
-                'summary' => 'Soft delete peserta',
+                'tags' => ['Permainan'],
+                'summary' => 'Menghapus peserta secara soft delete',
                 'operationId' => 'deleteParticipant',
                 'security' => [['bearerAuth' => []]],
                 'responses' => [
@@ -412,7 +412,7 @@ return [
                 ],
             ],
             'patch' => [
-                'tags' => ['Games'],
+                'tags' => ['Permainan'],
                 'summary' => 'Mengubah status peserta',
                 'operationId' => 'updateParticipantStatus',
                 'security' => [['bearerAuth' => []]],
@@ -443,8 +443,8 @@ return [
         '/api/games/{game_id}/transfers' => [
             'parameters' => [['$ref' => '#/components/parameters/ParticipantGameId']],
             'get' => [
-                'tags' => ['Games'],
-                'summary' => 'Mendapatkan history keluar masuk uang',
+                'tags' => ['Permainan'],
+                'summary' => 'Mendapatkan riwayat keluar masuk uang',
                 'operationId' => 'listTransferHistory',
                 'security' => [['bearerAuth' => []]],
                 'parameters' => [
@@ -453,12 +453,12 @@ return [
                         'in' => 'query',
                         'required' => false,
                         'schema' => ['type' => 'integer', 'minimum' => 1],
-                        'description' => 'Filter history untuk peserta tertentu, baik sebagai pengirim maupun penerima.',
+                        'description' => 'Filter riwayat untuk peserta tertentu, baik sebagai pengirim maupun penerima.',
                     ],
                 ],
                 'responses' => [
                     '200' => [
-                        'description' => 'Daftar history transfer.',
+                        'description' => 'Daftar riwayat transfer.',
                         'content' => [
                             'application/json' => [
                                 'schema' => [
@@ -480,7 +480,7 @@ return [
                 ],
             ],
             'post' => [
-                'tags' => ['Games'],
+                'tags' => ['Permainan'],
                 'summary' => 'Transfer uang antar peserta',
                 'operationId' => 'transferParticipantMoney',
                 'security' => [['bearerAuth' => []]],
@@ -771,7 +771,7 @@ return [
                 'content' => ['application/json' => ['schema' => ['$ref' => '#/components/schemas/Error']]],
             ],
             'NotFound' => [
-                'description' => 'Game tidak ditemukan.',
+                'description' => 'Data yang diminta tidak ditemukan.',
                 'content' => ['application/json' => ['schema' => ['$ref' => '#/components/schemas/Error']]],
             ],
             'GameAlreadyClosed' => [

@@ -30,7 +30,7 @@ $configPath = __DIR__ . $ds . 'config.php';
 if (file_exists($configPath) === false) {
     Flight::halt(
         500,
-        'Config file not found. Copy app/config/config_sample.php to app/config/config.php'
+        'File config tidak ditemukan. Salin app/config/config_sample.php ke app/config/config.php'
     );
 }
 

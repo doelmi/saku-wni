@@ -40,7 +40,7 @@ final class ParticipantController
     public function index($gameId): void
     {
         if ($this->findOwnedGame($gameId) === null) {
-            $this->error('not_found', 'Game not found.', 404);
+            $this->error('not_found', 'Game tidak ditemukan.', 404);
             return;
         }
 
@@ -66,13 +66,13 @@ final class ParticipantController
     public function create($gameId): void
     {
         if ($this->findOwnedGame($gameId) === null) {
-            $this->error('not_found', 'Game not found.', 404);
+            $this->error('not_found', 'Game tidak ditemukan.', 404);
             return;
         }
 
         $name = $this->input('name');
         if (!is_string($name)) {
-            $this->error('validation_error', 'A participant name is required.', 422);
+            $this->error('validation_error', 'Nama peserta wajib diisi.', 422);
             return;
         }
 
@@ -103,19 +103,19 @@ final class ParticipantController
     public function updateStatus($gameId, $participantId): void
     {
         if ($this->findOwnedGame($gameId) === null) {
-            $this->error('not_found', 'Game not found.', 404);
+            $this->error('not_found', 'Game tidak ditemukan.', 404);
             return;
         }
 
         $participant = $this->findActiveParticipant($gameId, $participantId);
         if ($participant === null) {
-            $this->error('not_found', 'Participant not found.', 404);
+            $this->error('not_found', 'Peserta tidak ditemukan.', 404);
             return;
         }
 
         $status = $this->input('status');
         if (!is_string($status)) {
-            $this->error('validation_error', 'Participant status is required.', 422);
+            $this->error('validation_error', 'Status peserta wajib diisi.', 422);
             return;
         }
 
@@ -132,7 +132,7 @@ final class ParticipantController
 
             $updatedParticipant = $this->findActiveParticipant($gameId, $participantId);
             if ($updatedParticipant === null) {
-                $this->error('not_found', 'Participant not found.', 404);
+                $this->error('not_found', 'Peserta tidak ditemukan.', 404);
                 return;
             }
 
@@ -149,23 +149,23 @@ final class ParticipantController
     public function update($gameId, $participantId): void
     {
         if ($this->findOwnedGame($gameId) === null) {
-            $this->error('not_found', 'Game not found.', 404);
+            $this->error('not_found', 'Game tidak ditemukan.', 404);
             return;
         }
 
         $participant = $this->findActiveParticipant($gameId, $participantId);
         if ($participant === null) {
-            $this->error('not_found', 'Participant not found.', 404);
+            $this->error('not_found', 'Peserta tidak ditemukan.', 404);
             return;
         }
         if ($this->isCountryParticipant($participant)) {
-            $this->error('validation_error', 'Negara participant cannot be renamed.', 422);
+            $this->error('validation_error', 'Peserta Negara tidak boleh diganti namanya.', 422);
             return;
         }
 
         $name = $this->input('name');
         if (!is_string($name)) {
-            $this->error('validation_error', 'A participant name is required.', 422);
+            $this->error('validation_error', 'Nama peserta wajib diisi.', 422);
             return;
         }
 
@@ -188,17 +188,17 @@ final class ParticipantController
     public function delete($gameId, $participantId): void
     {
         if ($this->findOwnedGame($gameId) === null) {
-            $this->error('not_found', 'Game not found.', 404);
+            $this->error('not_found', 'Game tidak ditemukan.', 404);
             return;
         }
 
         $participant = $this->findActiveParticipant($gameId, $participantId);
         if ($participant === null) {
-            $this->error('not_found', 'Participant not found.', 404);
+            $this->error('not_found', 'Peserta tidak ditemukan.', 404);
             return;
         }
         if ($this->isCountryParticipant($participant)) {
-            $this->error('validation_error', 'Negara participant cannot be deleted.', 422);
+            $this->error('validation_error', 'Peserta Negara tidak boleh dihapus.', 422);
             return;
         }
 
@@ -208,7 +208,7 @@ final class ParticipantController
             'updated_at' => $now,
         ])->update();
 
-        $this->app->json(['message' => 'Participant deleted.'], 200);
+        $this->app->json(['message' => 'Peserta berhasil dihapus.'], 200);
     }
 
     /**
@@ -265,7 +265,7 @@ final class ParticipantController
         $name = trim($name);
         if ($name === '' || strlen($name) > 255) {
             throw new InvalidArgumentException(
-                'Participant name must be between 1 and 255 characters.'
+                'Nama peserta harus terdiri dari 1 sampai 255 karakter.'
             );
         }
 
@@ -276,7 +276,7 @@ final class ParticipantController
     {
         $name = $this->validateName($name);
         if (strcasecmp($name, Participant::DEFAULT_NAME) === 0) {
-            throw new InvalidArgumentException('Participant name cannot be Negara.');
+            throw new InvalidArgumentException('Nama peserta tidak boleh Negara.');
         }
 
         return $name;
@@ -289,7 +289,7 @@ final class ParticipantController
             Participant::STATUS_ACTIVE,
             Participant::STATUS_BANKRUPT,
         ], true)) {
-            throw new InvalidArgumentException('Participant status must be active or bankrupt.');
+            throw new InvalidArgumentException('Status peserta hanya boleh active atau bankrupt.');
         }
 
         return $status;
@@ -302,7 +302,7 @@ final class ParticipantController
     private function bankruptParticipant($gameId, $participantId, Participant $participant): void
     {
         if ($this->isCountryParticipant($participant)) {
-            throw new InvalidArgumentException('Negara cannot be declared bankrupt.');
+            throw new InvalidArgumentException('Peserta Negara tidak boleh dibuat bankrupt.');
         }
 
         $now = $this->now();
@@ -323,7 +323,7 @@ final class ParticipantController
                 ->find();
 
             if (!$country instanceof Participant || !$country->isHydrated()) {
-                throw new InvalidArgumentException('Negara participant not found.');
+                throw new InvalidArgumentException('Peserta Negara tidak ditemukan.');
             }
 
             $balance = (int) $participant->balance;
@@ -340,7 +340,7 @@ final class ParticipantController
             );
 
             if ($updated->rowCount() !== 1) {
-                throw new InvalidArgumentException('Participant status could not be updated.');
+                throw new InvalidArgumentException('Status peserta gagal diperbarui.');
             }
 
             if ($balance < 1) {

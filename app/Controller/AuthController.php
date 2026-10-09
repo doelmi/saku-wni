@@ -31,14 +31,14 @@ final class AuthController
     {
         $email = $this->input('email');
         if (!is_string($email)) {
-            $this->error('validation_error', 'A valid email address is required.', 422);
+            $this->error('validation_error', 'Email yang kamu masukkan belum valid.', 422);
             return;
         }
 
         try {
             $result = $this->auth->requestOtp($email);
             $this->app->json([
-                'message' => 'If the email is valid, a verification code has been sent.',
+                'message' => 'Kalau emailnya valid, kode verifikasi sudah dikirim ke email kamu.',
                 'challenge_id' => $result['challenge_id'],
                 'expires_in' => $result['expires_in'],
             ], 202);
@@ -53,7 +53,7 @@ final class AuthController
         } catch (InvalidArgumentException $e) {
             $this->error('validation_error', $e->getMessage(), 422);
         } catch (RuntimeException $e) {
-            $this->error('email_delivery_failed', 'Unable to send the verification code.', 503);
+            $this->error('email_delivery_failed', 'Kode verifikasi gagal dikirim. Coba lagi sebentar, ya.', 503);
         }
     }
 
@@ -65,7 +65,7 @@ final class AuthController
             || !is_string($otp)
             || !ctype_digit((string) $challengeId)
         ) {
-            $this->error('validation_error', 'challenge_id and otp are required.', 422);
+            $this->error('validation_error', 'challenge_id dan OTP wajib diisi.', 422);
             return;
         }
 
@@ -81,13 +81,13 @@ final class AuthController
     {
         $token = $this->bearerToken();
         if ($token === null) {
-            $this->error('unauthorized', 'Authentication required.', 401);
+            $this->error('unauthorized', 'Kamu harus login dulu.', 401);
             return;
         }
 
         try {
             $this->auth->logout($token);
-            $this->app->json(['message' => 'Logged out.'], 200);
+            $this->app->json(['message' => 'Berhasil logout.'], 200);
         } catch (InvalidArgumentException $e) {
             $this->error('unauthorized', $e->getMessage(), 401);
         }

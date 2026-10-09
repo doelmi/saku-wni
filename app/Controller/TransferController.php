@@ -40,18 +40,18 @@ final class TransferController
     public function index($gameId): void
     {
         if ($this->findOwnedGame($gameId) === null) {
-            $this->error('not_found', 'Game not found.', 404);
+            $this->error('not_found', 'Game tidak ditemukan.', 404);
             return;
         }
 
         $participantId = $this->query('participant_id');
         if ($participantId !== null && !$this->validId($participantId)) {
-            $this->error('validation_error', 'Participant ID must be a positive integer.', 422);
+            $this->error('validation_error', 'ID peserta harus berupa bilangan bulat positif.', 422);
             return;
         }
 
         if ($participantId !== null && $this->findParticipant($gameId, $participantId) === null) {
-            $this->error('not_found', 'Participant not found.', 404);
+            $this->error('not_found', 'Peserta tidak ditemukan.', 404);
             return;
         }
 
@@ -99,7 +99,7 @@ final class TransferController
     public function transfer($gameId): void
     {
         if ($this->findOwnedGame($gameId) === null) {
-            $this->error('not_found', 'Game not found.', 404);
+            $this->error('not_found', 'Game tidak ditemukan.', 404);
             return;
         }
 
@@ -114,7 +114,7 @@ final class TransferController
         ) {
             $this->error(
                 'validation_error',
-                'Source and destination participants must be different valid IDs.',
+                'Peserta pengirim dan penerima harus memiliki ID valid yang berbeda.',
                 422
             );
             return;
@@ -130,7 +130,7 @@ final class TransferController
         $fromParticipant = $this->findTransferableParticipant($gameId, $fromParticipantId);
         $toParticipant = $this->findTransferableParticipant($gameId, $toParticipantId);
         if ($fromParticipant === null || $toParticipant === null) {
-            $this->error('not_found', 'Participant not found.', 404);
+            $this->error('not_found', 'Peserta tidak ditemukan.', 404);
             return;
         }
 
@@ -159,7 +159,7 @@ final class TransferController
                 );
 
                 if ($debit->rowCount() !== 1) {
-                    throw new InvalidArgumentException('Insufficient participant balance.');
+                    throw new InvalidArgumentException('Saldo peserta tidak cukup.');
                 }
 
                 $credit = $this->db->runQuery(
@@ -177,7 +177,7 @@ final class TransferController
                 );
 
                 if ($credit->rowCount() !== 1) {
-                    throw new InvalidArgumentException('Participant not found.');
+                    throw new InvalidArgumentException('Peserta tidak ditemukan.');
                 }
 
                 $this->db->runQuery(
@@ -203,7 +203,7 @@ final class TransferController
                 );
 
                 if ($from === null || $to === null) {
-                    throw new InvalidArgumentException('Participant not found.');
+                    throw new InvalidArgumentException('Peserta tidak ditemukan.');
                 }
 
                 return [
@@ -333,7 +333,7 @@ final class TransferController
             || (int) $amount < 1
             || strlen((string) $amount) > strlen((string) PHP_INT_MAX)
         ) {
-            throw new InvalidArgumentException('Transfer amount must be a positive integer.');
+            throw new InvalidArgumentException('Jumlah transfer harus berupa bilangan bulat positif.');
         }
 
         return (int) $amount;

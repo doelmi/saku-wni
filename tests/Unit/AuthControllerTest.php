@@ -69,7 +69,7 @@ class AuthControllerTest extends TestCase
         (new AuthController($app, $auth))->logout();
 
         $this->assertSame(200, $json['status']);
-        $this->assertSame('Logged out.', $json['payload']['message']);
+        $this->assertSame('Berhasil logout.', $json['payload']['message']);
 
         unset($_SERVER['HTTP_AUTHORIZATION']);
     }

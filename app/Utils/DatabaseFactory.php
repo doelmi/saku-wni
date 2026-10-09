@@ -34,7 +34,7 @@ final class DatabaseFactory
 
         if ($driver === '') {
             throw new InvalidArgumentException(
-                'Database is not configured. Set database.driver in config.php or DB_DRIVER in .env'
+                'Database belum diatur. Isi database.driver di config.php atau DB_DRIVER di .env'
             );
         }
 
@@ -61,7 +61,7 @@ final class DatabaseFactory
         if ($driver === 'sqlite') {
             $path = (string) $config->get('database.file_path', '');
             if ($path === '') {
-                throw new InvalidArgumentException('database.file_path is required for sqlite');
+                throw new InvalidArgumentException('database.file_path wajib diisi untuk sqlite');
             }
 
             $dir = dirname($path);
@@ -80,6 +80,6 @@ final class DatabaseFactory
             return 'mysql:host=' . $host . ';dbname=' . $dbname . ';charset=' . $charset;
         }
 
-        throw new InvalidArgumentException('Unsupported database driver: ' . $driver);
+        throw new InvalidArgumentException('Driver database belum didukung: ' . $driver);
     }
 }
