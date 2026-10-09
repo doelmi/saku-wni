@@ -7,6 +7,6 @@ parameters:
     excludePaths:
         - app/cache/*
         - app/log/*
-        - app/config/config.php
+        - app/config/config.php (?)
     treatPhpDocTypesAsCertain: false
     reportUnmatchedIgnoredErrors: true
