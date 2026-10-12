@@ -9,12 +9,16 @@ use App\Model\Participant;
 use App\Utils\Config;
 use DateTimeImmutable;
 use DateTimeZone;
+use DomainException;
 use InvalidArgumentException;
 use flight\database\SimplePdo;
 use flight\Engine;
+use PDO;
 
 final class GameController
 {
+    private const GLOBAL_DAILY_LIMIT_CODE = 1;
+
     /** @var Engine */
     private $app;
 
@@ -64,8 +68,46 @@ final class GameController
             $gameName = $this->validateName($name);
             $now = $this->now();
             $userId = $this->currentUserId();
+            $userLimit = max(1, (int) $this->config->get('games.daily_create_limit', 5));
+            $globalLimit = max(1, (int) $this->config->get('games.global_daily_create_limit', 100));
 
-            $game = $this->db->transaction(function () use ($gameName, $now, $userId): Game {
+            $game = $this->db->transaction(function () use (
+                $gameName, $now, $userId, $userLimit, $globalLimit
+            ): Game {
+                if ($this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql') {
+                    // Semua pembuatan game menunggu kunci yang sama sebelum menghitung kuota.
+                    $this->db->fetchRow('SELECT id FROM users ORDER BY id LIMIT 1 FOR UPDATE');
+                }
+
+                $timezone = new DateTimeZone((string) $this->config->get(
+                    'app.timezone',
+                    date_default_timezone_get()
+                ));
+                $today = new DateTimeImmutable($now, $timezone);
+                $start = $today->format('Y-m-d 00:00:00');
+                $end = $today->modify('tomorrow')->format('Y-m-d 00:00:00');
+                $count = $this->db->fetchRow(
+                    'SELECT COUNT(*) AS total FROM games
+                     WHERE user_id = ? AND created_at >= ? AND created_at < ?',
+                    [$userId, $start, $end]
+                );
+
+                if ((int) ($count['total'] ?? 0) >= $userLimit) {
+                    throw new DomainException('Jatah bikin game hari ini sudah habis. Coba lagi besok, ya!');
+                }
+
+                $globalCount = $this->db->fetchRow(
+                    'SELECT COUNT(*) AS total FROM games
+                     WHERE created_at >= ? AND created_at < ?',
+                    [$start, $end]
+                );
+                if ((int) ($globalCount['total'] ?? 0) >= $globalLimit) {
+                    throw new DomainException(
+                        'Jatah game untuk semua pemain hari ini sudah habis. Coba lagi besok, ya!',
+                        self::GLOBAL_DAILY_LIMIT_CODE
+                    );
+                }
+
                 $game = new Game($this->db);
                 $game->copyFrom([
                     'user_id' => $userId,
@@ -93,6 +135,10 @@ final class GameController
             $this->app->json($this->serializeGame($game), 201);
         } catch (InvalidArgumentException $e) {
             $this->error('validation_error', $e->getMessage(), 422);
+        } catch (DomainException $e) {
+            $code = $e->getCode() === self::GLOBAL_DAILY_LIMIT_CODE
+                ? 'game_global_daily_limit_reached' : 'game_daily_limit_reached';
+            $this->error($code, $e->getMessage(), 429);
         }
     }
 

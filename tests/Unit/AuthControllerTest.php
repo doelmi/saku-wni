@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use App\Controller\AuthController;
+use App\Service\AuthDailyEmailLimitException;
 use App\Service\Authenticator;
 use flight\Engine;
 use flight\net\Request;
@@ -104,6 +105,24 @@ class AuthControllerTest extends TestCase
 
         $this->assertSame(422, $json['status']);
         $this->assertSame('validation_error', $json['payload']['error']['code']);
+    }
+
+    public function testDailyEmailLimitReturnsTooManyRequests(): void
+    {
+        $auth = $this->createMock(Authenticator::class);
+        $auth->expects($this->once())
+            ->method('requestOtp')
+            ->willThrowException(new AuthDailyEmailLimitException(3600));
+
+        $request = $this->requestWithData(['email' => 'user@example.com']);
+        $json = [];
+        $app = $this->mockApp($request, $json);
+
+        (new AuthController($app, $auth))->requestOtp();
+
+        $this->assertSame(429, $json['status']);
+        $this->assertSame('daily_email_limit_reached', $json['payload']['error']['code']);
+        $this->assertSame(3600, $json['payload']['error']['retry_after']);
     }
 
     /**

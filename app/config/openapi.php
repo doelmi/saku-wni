@@ -109,7 +109,12 @@ return [
                         ],
                     ],
                     '422' => ['$ref' => '#/components/responses/ValidationError'],
-                    '429' => ['$ref' => '#/components/responses/TooManyRequests'],
+                    '429' => [
+                        'description' => 'Batas kirim email OTP per hari sudah tercapai.',
+                        'content' => ['application/json' => [
+                            'schema' => ['$ref' => '#/components/schemas/Error'],
+                        ]],
+                    ],
                     '503' => ['$ref' => '#/components/responses/EmailDeliveryFailed'],
                 ],
             ],
@@ -213,6 +218,12 @@ return [
                     ],
                     '401' => ['$ref' => '#/components/responses/Unauthorized'],
                     '422' => ['$ref' => '#/components/responses/ValidationError'],
+                    '429' => [
+                        'description' => 'Jatah membuat game harian per pengguna atau global sudah habis.',
+                        'content' => ['application/json' => [
+                            'schema' => ['$ref' => '#/components/schemas/Error'],
+                        ]],
+                    ],
                 ],
             ],
         ],
@@ -341,6 +352,12 @@ return [
                     '401' => ['$ref' => '#/components/responses/Unauthorized'],
                     '404' => ['$ref' => '#/components/responses/NotFound'],
                     '422' => ['$ref' => '#/components/responses/ValidationError'],
+                    '429' => [
+                        'description' => 'Jatah menambah peserta untuk game hari ini sudah habis.',
+                        'content' => ['application/json' => [
+                            'schema' => ['$ref' => '#/components/schemas/Error'],
+                        ]],
+                    ],
                 ],
             ],
         ],

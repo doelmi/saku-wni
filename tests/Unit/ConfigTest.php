@@ -121,4 +121,35 @@ class ConfigTest extends TestCase
         $this->assertSame(3, $config->get('sse.poll_interval'));
         $this->assertSame(5000, $config->get('sse.retry_after'));
     }
+
+    public function testDailyGameLimitCanBeOverriddenFromEnvironment(): void
+    {
+        $merged = Config::mergeEnv(
+            ['games' => ['daily_create_limit' => 5, 'global_daily_create_limit' => 100]],
+            ['GAMES_DAILY_CREATE_LIMIT' => '2', 'GAMES_GLOBAL_DAILY_CREATE_LIMIT' => '50']
+        );
+
+        $this->assertSame(2, (new Config($merged))->get('games.daily_create_limit'));
+        $this->assertSame(50, (new Config($merged))->get('games.global_daily_create_limit'));
+    }
+
+    public function testDailyParticipantLimitCanBeOverriddenFromEnvironment(): void
+    {
+        $merged = Config::mergeEnv(
+            ['participants' => ['daily_create_limit' => 10]],
+            ['PARTICIPANTS_DAILY_CREATE_LIMIT' => '25']
+        );
+
+        $this->assertSame(25, (new Config($merged))->get('participants.daily_create_limit'));
+    }
+
+    public function testDailyEmailLimitCanBeOverriddenFromEnvironment(): void
+    {
+        $merged = Config::mergeEnv(
+            ['auth' => ['daily_email_limit' => 200]],
+            ['AUTH_DAILY_EMAIL_LIMIT' => '350']
+        );
+
+        $this->assertSame(350, (new Config($merged))->get('auth.daily_email_limit'));
+    }
 }

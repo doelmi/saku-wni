@@ -38,6 +38,8 @@ final class AuthService implements Authenticator
         $now = $this->now();
         $cooldown = max(1, (int) $this->config->get('auth.otp_resend_cooldown', 60));
         $otpTtl = max(60, (int) $this->config->get('auth.otp_ttl', 600));
+        $dailyEmailLimit = max(1, (int) $this->config->get('auth.daily_email_limit', 200));
+        $today = new DateTimeImmutable($now, $this->timezone());
 
         $user = $this->db->fetchRow('SELECT id FROM users WHERE email = ?', [$email]);
         if ($user === null || count($user) === 0) {
@@ -66,25 +68,28 @@ final class AuthService implements Authenticator
             }
         }
 
-        $this->db->prepare(
-            'UPDATE otp_challenges SET consumed_at = ?
-             WHERE user_id = ? AND consumed_at IS NULL'
-        )->execute([$now, $userId]);
+        $quotaDate = $today->format('Y-m-d');
+        $this->reserveEmailSlot($quotaDate, $dailyEmailLimit, $today);
 
-        $otp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-        $expiresAt = $this->timeAfter($otpTtl);
-        $codeHash = password_hash($otp, PASSWORD_DEFAULT);
-
-        $statement = $this->db->prepare(
-            'INSERT INTO otp_challenges
-                (user_id, code_hash, expires_at, attempts, consumed_at, created_at)
-             VALUES (?, ?, ?, 0, NULL, ?)'
-        );
-        $statement->execute([$userId, $codeHash, $expiresAt, $now]);
-        $challengeId = (int) $this->db->lastInsertId();
-
-        $subject = (string) $this->config->get('mail.otp_subject', 'Kode verifikasi login kamu');
         try {
+            $this->db->prepare(
+                'UPDATE otp_challenges SET consumed_at = ?
+                 WHERE user_id = ? AND consumed_at IS NULL'
+            )->execute([$now, $userId]);
+
+            $otp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            $expiresAt = $this->timeAfter($otpTtl);
+            $codeHash = password_hash($otp, PASSWORD_DEFAULT);
+
+            $statement = $this->db->prepare(
+                'INSERT INTO otp_challenges
+                    (user_id, code_hash, expires_at, attempts, consumed_at, created_at)
+                 VALUES (?, ?, ?, 0, NULL, ?)'
+            );
+            $statement->execute([$userId, $codeHash, $expiresAt, $now]);
+            $challengeId = (int) $this->db->lastInsertId();
+
+            $subject = (string) $this->config->get('mail.otp_subject', 'Kode verifikasi login kamu');
             $this->emailSender->send(
                 $email,
                 $subject,
@@ -93,9 +98,15 @@ final class AuthService implements Authenticator
                 . "Kalau kamu tidak merasa meminta kode ini, abaikan saja email ini."
             );
         } catch (\Throwable $e) {
+            if (isset($challengeId)) {
+                $this->db->prepare(
+                    'UPDATE otp_challenges SET consumed_at = ? WHERE id = ?'
+                )->execute([$this->now(), $challengeId]);
+            }
             $this->db->prepare(
-                'UPDATE otp_challenges SET consumed_at = ? WHERE id = ?'
-            )->execute([$this->now(), $challengeId]);
+                'UPDATE daily_email_quota SET sent_count = sent_count - 1
+                 WHERE quota_date = ? AND sent_count > 0'
+            )->execute([$quotaDate]);
             throw new RuntimeException('Email OTP gagal dikirim.', 0, $e);
         }
 
@@ -103,6 +114,34 @@ final class AuthService implements Authenticator
             'challenge_id' => $challengeId,
             'expires_in' => $otpTtl,
         ];
+    }
+
+    private function reserveEmailSlot(string $quotaDate, int $limit, DateTimeImmutable $today): void
+    {
+        $reserved = $this->db->transaction(function () use ($quotaDate, $limit): bool {
+            if ($this->db->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'mysql') {
+                $this->db->prepare(
+                    'INSERT IGNORE INTO daily_email_quota (quota_date, sent_count) VALUES (?, 0)'
+                )->execute([$quotaDate]);
+            } else {
+                $this->db->prepare(
+                    'INSERT OR IGNORE INTO daily_email_quota (quota_date, sent_count) VALUES (?, 0)'
+                )->execute([$quotaDate]);
+            }
+
+            $update = $this->db->prepare(
+                'UPDATE daily_email_quota SET sent_count = sent_count + 1
+                 WHERE quota_date = ? AND sent_count < ?'
+            );
+            $update->execute([$quotaDate, $limit]);
+
+            return $update->rowCount() === 1;
+        });
+
+        if (!$reserved) {
+            $retryAfter = $today->modify('tomorrow')->getTimestamp() - time();
+            throw new AuthDailyEmailLimitException(max(1, $retryAfter));
+        }
     }
 
     /**

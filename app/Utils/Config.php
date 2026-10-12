@@ -27,6 +27,11 @@ final class Config
         'APP_DEBUG' => 'app.debug',
         'FLIGHT_BASE_URL' => 'app.base_url',
         'APP_TIMEZONE' => 'app.timezone',
+        'CORS_ALLOWED_ORIGINS' => 'cors.allowed_origins',
+        'GAMES_DAILY_CREATE_LIMIT' => 'games.daily_create_limit',
+        'GAMES_GLOBAL_DAILY_CREATE_LIMIT' => 'games.global_daily_create_limit',
+        'PARTICIPANTS_DAILY_CREATE_LIMIT' => 'participants.daily_create_limit',
+        'AUTH_DAILY_EMAIL_LIMIT' => 'auth.daily_email_limit',
         'DB_DRIVER' => 'database.driver',
         'DB_HOST' => 'database.host',
         'DB_DATABASE' => 'database.dbname',
@@ -157,6 +162,10 @@ final class Config
     {
         if (
             $path === 'mail.port'
+            || $path === 'games.daily_create_limit'
+            || $path === 'games.global_daily_create_limit'
+            || $path === 'participants.daily_create_limit'
+            || $path === 'auth.daily_email_limit'
             || $path === 'mail.timeout'
             || $path === 'sse.max_duration'
             || $path === 'sse.poll_interval'

@@ -22,6 +22,7 @@ require $projectRoot . $ds . 'vendor' . $ds . 'autoload.php';
 
 use App\Utils\Config;
 use App\Utils\Env;
+use App\Middleware\CorsMiddleware;
 
 // Layer 1: .env / real environment (secrets + deploy overrides)
 Env::load($projectRoot . $ds . '.env');
@@ -75,6 +76,10 @@ $app->set('app.project_root', $projectRoot);
 
 // Services: Tracy, DB, Twig, Session, Dice + container handler
 require __DIR__ . $ds . 'services.php';
+
+// Flight completes OPTIONS requests before route middleware runs.
+$cors = new CorsMiddleware($app, $config);
+$app->onEvent('flight.request.received', [$cors, 'onRequest']);
 
 $router = $app->router();
 require __DIR__ . $ds . 'routes.php';

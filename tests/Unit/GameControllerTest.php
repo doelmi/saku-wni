@@ -6,6 +6,8 @@ namespace Tests\Unit;
 
 use App\Controller\GameController;
 use App\Utils\Config;
+use DateTimeImmutable;
+use DateTimeZone;
 use flight\database\SimplePdo;
 use flight\Engine;
 use PHPUnit\Framework\TestCase;
@@ -136,6 +138,141 @@ class GameControllerTest extends TestCase
         $this->assertSame($participant['created_at'], $participant['updated_at']);
         $this->assertNull($participant['deleted_at']);
         $this->assertSame(1, (int) $participant['game_id']);
+    }
+
+    public function testDailyLimitCountsDeletedGamesButOnlyForTheCurrentUserAndDay(): void
+    {
+        $db = $this->createGameDatabase();
+        $today = (new DateTimeImmutable('now', new DateTimeZone('Asia/Jakarta')))
+            ->format('Y-m-d');
+        $yesterday = (new DateTimeImmutable($today, new DateTimeZone('Asia/Jakarta')))
+            ->modify('-1 day')->format('Y-m-d');
+
+        for ($i = 0; $i < 5; $i++) {
+            $db->prepare(
+                'INSERT INTO games (user_id, name, created_at, status, deleted_at)
+                 VALUES (?, ?, ?, ?, ?)'
+            )->execute([7, 'Game ' . $i, $today . ' 10:00:00', 'active',
+                $i === 0 ? $today . ' 11:00:00' : null]);
+        }
+        $db->prepare(
+            'INSERT INTO games (user_id, name, created_at, status) VALUES (?, ?, ?, ?)'
+        )->execute([7, 'Kemarin', $yesterday . ' 23:59:59', 'active']);
+        $db->prepare(
+            'INSERT INTO games (user_id, name, created_at, status) VALUES (?, ?, ?, ?)'
+        )->execute([8, 'User lain', $today . ' 10:00:00', 'active']);
+
+        $json = [];
+        (new GameController(
+            $this->mockApp($json, 7, 'Game keenam'),
+            $db,
+            new Config(['app' => ['timezone' => 'Asia/Jakarta']])
+        ))->create();
+
+        $this->assertSame(429, $json['status']);
+        $this->assertSame('game_daily_limit_reached', $json['payload']['error']['code']);
+        $this->assertSame(6, $this->countRows(
+            $db, 'SELECT COUNT(*) AS total FROM games WHERE user_id = ?', [7]
+        ));
+        $this->assertSame(0, $this->countRows(
+            $db, 'SELECT COUNT(*) AS total FROM participants'
+        ));
+    }
+
+    public function testConfiguredDailyLimitAllowsUpToLimitThenResetsForAnotherUser(): void
+    {
+        $db = $this->createGameDatabase();
+        $config = new Config(['app' => ['timezone' => 'Asia/Jakarta'],
+            'games' => ['daily_create_limit' => 2]]);
+        $json = [];
+
+        for ($i = 0; $i < 3; $i++) {
+            (new GameController($this->mockApp($json, 7, 'Game ' . $i), $db, $config))->create();
+            $this->assertSame($i < 2 ? 201 : 429, $json['status']);
+        }
+
+        (new GameController($this->mockApp($json, 8, 'Game user lain'), $db, $config))->create();
+        $this->assertSame(201, $json['status']);
+        $this->assertSame(3, $this->countRows($db, 'SELECT COUNT(*) AS total FROM games'));
+        $this->assertSame(3, $this->countRows($db, 'SELECT COUNT(*) AS total FROM participants'));
+    }
+
+    public function testGlobalLimitCountsAllUsersAndDeletedGamesWithoutAffectingYesterday(): void
+    {
+        $db = $this->createGameDatabase();
+        $today = (new DateTimeImmutable('now', new DateTimeZone('Asia/Jakarta')))
+            ->format('Y-m-d');
+        $yesterday = (new DateTimeImmutable($today, new DateTimeZone('Asia/Jakarta')))
+            ->modify('-1 day')->format('Y-m-d');
+        $config = new Config([
+            'app' => ['timezone' => 'Asia/Jakarta'],
+            'games' => ['daily_create_limit' => 5, 'global_daily_create_limit' => 2],
+        ]);
+        $json = [];
+
+        $db->prepare(
+            'INSERT INTO games (user_id, name, created_at, status, deleted_at)
+             VALUES (?, ?, ?, ?, ?)'
+        )->execute([7, 'Dihapus', $today . ' 10:00:00', 'active', $today . ' 11:00:00']);
+        $db->prepare(
+            'INSERT INTO games (user_id, name, created_at, status)
+             VALUES (?, ?, ?, ?)'
+        )->execute([8, 'Kemarin', $yesterday . ' 23:59:59', 'active']);
+
+        (new GameController($this->mockApp($json, 8, 'Game kedua'), $db, $config))->create();
+        $this->assertSame(201, $json['status']);
+
+        (new GameController($this->mockApp($json, 9, 'Game ketiga'), $db, $config))->create();
+        $this->assertSame(429, $json['status']);
+        $this->assertSame('game_global_daily_limit_reached', $json['payload']['error']['code']);
+        $this->assertSame(3, $this->countRows($db, 'SELECT COUNT(*) AS total FROM games'));
+        $this->assertSame(1, $this->countRows($db, 'SELECT COUNT(*) AS total FROM participants'));
+    }
+
+    /**
+     * @param array<int,mixed> $params
+     */
+    private function countRows(SimplePdo $db, string $sql, array $params = []): int
+    {
+        $row = $db->fetchRow($sql, $params);
+        if ($row === null || !isset($row['total'])) {
+            throw new RuntimeException('Expected count row was not found.');
+        }
+
+        return (int) $row['total'];
+    }
+
+    private function createGameDatabase(): SimplePdo
+    {
+        $db = new SimplePdo('sqlite:' . $this->dbPath, null, null, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        ]);
+        $db->exec(
+            'CREATE TABLE games (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                status TEXT NOT NULL,
+                ended_at TEXT NULL,
+                deleted_at TEXT NULL
+            )'
+        );
+        $db->exec(
+            'CREATE TABLE participants (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                game_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                balance INTEGER NOT NULL DEFAULT 0,
+                status TEXT NOT NULL,
+                public_token TEXT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                deleted_at TEXT NULL
+            )'
+        );
+
+        return $db;
     }
 
     /**

@@ -21,6 +21,12 @@ return [
         'base_url' => '/',
         'timezone' => 'UTC',
     ],
+    'cors' => [
+        'allowed_origins' => [
+            'http://localhost:3000',
+            'http://127.0.0.1:3000',
+        ],
+    ],
     'database' => [
         // sqlite (default — works after create-project with no MySQL)
         // or mysql. Empty string disables DB registration and post/demo routes.
@@ -54,6 +60,14 @@ return [
         'otp_resend_cooldown' => 60,
         'otp_max_attempts' => 5,
         'access_token_ttl' => 2592000,
+        'daily_email_limit' => 200,
+    ],
+    'games' => [
+        'daily_create_limit' => 5,
+        'global_daily_create_limit' => 100,
+    ],
+    'participants' => [
+        'daily_create_limit' => 10,
     ],
     'sse' => [
         // Stream akan ditutup setelah durasi ini dan EventSource bisa reconnect.

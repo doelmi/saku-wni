@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Service\AuthRateLimitException;
+use App\Service\AuthDailyEmailLimitException;
 use App\Service\Authenticator;
 use InvalidArgumentException;
 use RuntimeException;
@@ -46,6 +47,14 @@ final class AuthController
             $this->app->json([
                 'error' => [
                     'code' => 'too_many_requests',
+                    'message' => $e->getMessage(),
+                    'retry_after' => $e->retryAfter(),
+                ],
+            ], 429);
+        } catch (AuthDailyEmailLimitException $e) {
+            $this->app->json([
+                'error' => [
+                    'code' => 'daily_email_limit_reached',
                     'message' => $e->getMessage(),
                     'retry_after' => $e->retryAfter(),
                 ],

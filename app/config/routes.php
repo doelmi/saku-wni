@@ -16,6 +16,7 @@ use App\Controller\ParticipantController;
 use App\Controller\PublicParticipantController;
 use App\Controller\TransferController;
 use App\Middleware\AuthMiddleware;
+use App\Middleware\CorsMiddleware;
 use App\Middleware\SecurityHeadersMiddleware;
 use App\Utils\DatabaseFactory;
 use flight\net\Router;
@@ -38,7 +39,6 @@ $router->group('', function (Router $router) use ($config) {
                     'Content-Type' => 'text/event-stream; charset=utf-8',
                     'Cache-Control' => 'no-cache, no-transform',
                     'X-Accel-Buffering' => 'no',
-                    'Access-Control-Allow-Origin' => '*',
                     'X-Content-Type-Options' => 'nosniff',
                     'X-Frame-Options' => 'SAMEORIGIN',
                     'Referrer-Policy' => 'no-referrer',
@@ -80,6 +80,6 @@ $router->group('', function (Router $router) use ($config) {
                     $router->post('/', [TransferController::class, 'transfer']);
                 });
             }, [AuthMiddleware::class]);
-        });
+        }, [CorsMiddleware::class]);
     }
 }, [SecurityHeadersMiddleware::class]);

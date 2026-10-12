@@ -9,9 +9,11 @@ use App\Model\Participant;
 use App\Utils\Config;
 use DateTimeImmutable;
 use DateTimeZone;
+use DomainException;
 use InvalidArgumentException;
 use flight\database\SimplePdo;
 use flight\Engine;
+use PDO;
 
 final class ParticipantController
 {
@@ -79,20 +81,59 @@ final class ParticipantController
         try {
             $name = $this->validateUserParticipantName($name);
             $now = $this->now();
-            $participant = new Participant($this->db);
-            $participant->copyFrom([
-                'game_id' => (int) $gameId,
-                'name' => $name,
-                'status' => Participant::STATUS_ACTIVE,
-                'public_token' => Participant::generatePublicToken(),
-                'created_at' => $now,
-                'updated_at' => $now,
-                'deleted_at' => null,
-            ])->insert();
+            $dailyLimit = max(1, (int) $this->config->get(
+                'participants.daily_create_limit',
+                10
+            ));
+            $participant = $this->db->transaction(function () use (
+                $gameId, $name, $now, $dailyLimit
+            ): Participant {
+                if ($this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql') {
+                    $this->db->fetchRow(
+                        'SELECT id FROM games WHERE id = ? FOR UPDATE',
+                        [(int) $gameId]
+                    );
+                }
+
+                $timezone = new DateTimeZone((string) $this->config->get(
+                    'app.timezone',
+                    date_default_timezone_get()
+                ));
+                $today = new DateTimeImmutable($now, $timezone);
+                $start = $today->format('Y-m-d 00:00:00');
+                $end = $today->modify('tomorrow')->format('Y-m-d 00:00:00');
+                $count = $this->db->fetchRow(
+                    'SELECT COUNT(*) AS total FROM participants
+                     WHERE game_id = ? AND name <> ?
+                     AND created_at >= ? AND created_at < ?',
+                    [(int) $gameId, Participant::DEFAULT_NAME, $start, $end]
+                );
+
+                if ((int) ($count['total'] ?? 0) >= $dailyLimit) {
+                    throw new DomainException(
+                        'Jatah menambah peserta di game ini hari ini sudah habis. Coba lagi besok, ya!'
+                    );
+                }
+
+                $participant = new Participant($this->db);
+                $participant->copyFrom([
+                    'game_id' => (int) $gameId,
+                    'name' => $name,
+                    'status' => Participant::STATUS_ACTIVE,
+                    'public_token' => Participant::generatePublicToken(),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                    'deleted_at' => null,
+                ])->insert();
+
+                return $participant;
+            });
 
             $this->app->json($this->serializeParticipant($participant), 201);
         } catch (InvalidArgumentException $e) {
             $this->error('validation_error', $e->getMessage(), 422);
+        } catch (DomainException $e) {
+            $this->error('participant_daily_limit_reached', $e->getMessage(), 429);
         }
     }
 
