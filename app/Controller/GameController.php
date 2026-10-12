@@ -76,7 +76,7 @@ final class GameController
             ): Game {
                 if ($this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql') {
                     // Semua pembuatan game menunggu kunci yang sama sebelum menghitung kuota.
-                    $this->db->fetchRow('SELECT id FROM users ORDER BY id LIMIT 1 FOR UPDATE');
+                    $this->db->runQuery('SELECT id FROM users ORDER BY id LIMIT 1 FOR UPDATE');
                 }
 
                 $timezone = new DateTimeZone((string) $this->config->get(
