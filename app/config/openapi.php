@@ -526,6 +526,12 @@ return [
                     '401' => ['$ref' => '#/components/responses/Unauthorized'],
                     '404' => ['$ref' => '#/components/responses/NotFound'],
                     '422' => ['$ref' => '#/components/responses/ValidationError'],
+                    '429' => [
+                        'description' => 'Batas total transfer untuk game ini sudah tercapai.',
+                        'content' => ['application/json' => [
+                            'schema' => ['$ref' => '#/components/schemas/Error'],
+                        ]],
+                    ],
                 ],
             ],
         ],

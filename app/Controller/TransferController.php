@@ -9,9 +9,11 @@ use App\Model\Participant;
 use App\Utils\Config;
 use DateTimeImmutable;
 use DateTimeZone;
+use DomainException;
 use InvalidArgumentException;
 use flight\database\SimplePdo;
 use flight\Engine;
+use PDO;
 
 final class TransferController
 {
@@ -135,14 +137,33 @@ final class TransferController
         }
 
         $now = $this->now();
+        $transferLimit = max(1, (int) $this->config->get('transfers.per_game_limit', 10000));
         try {
             $result = $this->db->transaction(function () use (
                 $gameId,
                 $fromParticipantId,
                 $toParticipantId,
                 $amount,
-                $now
+                $now,
+                $transferLimit
             ): array {
+                if ($this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql') {
+                    $this->db->runQuery(
+                        'SELECT id FROM games WHERE id = ? FOR UPDATE',
+                        [(int) $gameId]
+                    );
+                }
+
+                $transferCount = $this->db->fetchRow(
+                    'SELECT COUNT(*) AS total FROM participant_transfers WHERE game_id = ?',
+                    [(int) $gameId]
+                );
+                if ((int) ($transferCount['total'] ?? 0) >= $transferLimit) {
+                    throw new DomainException(
+                        'Batas total transfer di game ini sudah tercapai. Transaksi berikutnya belum bisa diproses, ya!'
+                    );
+                }
+
                 $debit = $this->db->runQuery(
                     'UPDATE participants
                      SET balance = balance - ?, updated_at = ?
@@ -228,6 +249,8 @@ final class TransferController
             ], 200);
         } catch (InvalidArgumentException $e) {
             $this->error('transfer_failed', $e->getMessage(), 422);
+        } catch (DomainException $e) {
+            $this->error('transfer_limit_reached', $e->getMessage(), 429);
         }
     }
 

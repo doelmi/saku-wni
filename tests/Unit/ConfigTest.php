@@ -152,4 +152,14 @@ class ConfigTest extends TestCase
 
         $this->assertSame(350, (new Config($merged))->get('auth.daily_email_limit'));
     }
+
+    public function testTransferLimitCanBeOverriddenFromEnvironment(): void
+    {
+        $merged = Config::mergeEnv(
+            ['transfers' => ['per_game_limit' => 10000]],
+            ['TRANSFERS_PER_GAME_LIMIT' => '25000']
+        );
+
+        $this->assertSame(25000, (new Config($merged))->get('transfers.per_game_limit'));
+    }
 }

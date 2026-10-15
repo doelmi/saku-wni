@@ -69,6 +69,9 @@ return [
     'participants' => [
         'daily_create_limit' => 10,
     ],
+    'transfers' => [
+        'per_game_limit' => 10000,
+    ],
     'sse' => [
         // Stream akan ditutup setelah durasi ini dan EventSource bisa reconnect.
         'max_duration' => 55,

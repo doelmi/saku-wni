@@ -32,6 +32,7 @@ final class Config
         'GAMES_GLOBAL_DAILY_CREATE_LIMIT' => 'games.global_daily_create_limit',
         'PARTICIPANTS_DAILY_CREATE_LIMIT' => 'participants.daily_create_limit',
         'AUTH_DAILY_EMAIL_LIMIT' => 'auth.daily_email_limit',
+        'TRANSFERS_PER_GAME_LIMIT' => 'transfers.per_game_limit',
         'DB_DRIVER' => 'database.driver',
         'DB_HOST' => 'database.host',
         'DB_DATABASE' => 'database.dbname',
@@ -166,6 +167,7 @@ final class Config
             || $path === 'games.global_daily_create_limit'
             || $path === 'participants.daily_create_limit'
             || $path === 'auth.daily_email_limit'
+            || $path === 'transfers.per_game_limit'
             || $path === 'mail.timeout'
             || $path === 'sse.max_duration'
             || $path === 'sse.poll_interval'

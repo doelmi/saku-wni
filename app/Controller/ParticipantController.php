@@ -89,7 +89,7 @@ final class ParticipantController
                 $gameId, $name, $now, $dailyLimit
             ): Participant {
                 if ($this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql') {
-                    $this->db->fetchRow(
+                    $this->db->runQuery(
                         'SELECT id FROM games WHERE id = ? FOR UPDATE',
                         [(int) $gameId]
                     );
